@@ -1,0 +1,4 @@
+name = "RxJulia"
+uuid = "b7b3c67e-b67e-11e9-3c79-1110acf22ca0"
+authors = ["Phil Hargett <phil@haphazardhouse.net>"]
+version = "0.1.0"
