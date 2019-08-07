@@ -4,6 +4,9 @@ export greet, @rx, Reactor, slot
 
 greet() = print("hello, world!")
 
+abstract type Observable end
+abstract type Observer end
+
 """
 A `Reactor` is an `Observable` that is also useful for building `Observer`s that
 are `Observable` as well.
@@ -16,32 +19,44 @@ end
 
 Reactor() = Reactor(pass, [])
 
+"""
+Subscribe an `Observer` to the given `Observable`
+"""
 function subscribe!(reactor::Reactor, observer)
     push!(reactor.observers, observer)
     observer
 end
 
+"""
+Deliver a value to the `Observer`
+"""
 function onEvent(reactor::Reactor, value)
-    let observers = reactor.observers
-        op = reactor.op
-        op(observers, value)
-    end
+    reactor.op(reactor, value)
 end
 
+"""
+Notify the `Observer` that no more events will be received.
+"""
 function onComplete(reactor::Reactor)
     for observer in reactor.observers
         onComplete(observer)
     end
 end
 
+"""
+Notify the `Observer` that there was an error, and no more events will be received.
+"""
 function onError(reactor::Reactor, e)
     for observer in reactor.observers
         onError(observer, e)
     end
 end
 
-function pass(observers, value)
-    for observer in observers 
+"""
+Simply pass the value onto any observers
+"""
+function pass(reactor::Reactor, value)
+    for observer in reactor.observers 
         onEvent(observer, value)
     end
 end
@@ -56,15 +71,14 @@ end
 
 """
 Given a do-block where each statement is an observable, 
-subscribe each in sequence to the one proceeding, and the
-first one to `start`.
+subscribe each in sequence to the one proceeding.
 
 Example:
 
   ```
   @rx() do
     count
-    filter(:event)
+    filter(:even)
   end`
   ```
 """
@@ -88,8 +102,14 @@ macro rx(blk)
     end
 end
 
+# / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
+#
+# Operators for creating new types of `Observable`s
+#
+# / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
+
 """
-Create a `Reactor` useful as the initial `Observable` in a `reactor`.
+Create a `Reactor` useful as the initial `Observable` in a reactive pipeline.
 """
 function slot(initial)
     Reactor(pass, [], initial)
@@ -103,5 +123,9 @@ end
 function getSlotValue(s)
     s.state
 end
+
+"""
+Return a `Reactor` that will invoke the provided function
+"""
 
 end # module

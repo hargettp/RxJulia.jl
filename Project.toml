@@ -2,3 +2,6 @@ name = "RxJulia"
 uuid = "b7b3c67e-b67e-11e9-3c79-1110acf22ca0"
 authors = ["Phil Hargett <phil@haphazardhouse.net>"]
 version = "0.1.0"
+
+[deps]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
