@@ -21,7 +21,7 @@ An `Event` is any of the following:
 * A _completion_ event, encapsulated as `CompletedEvent`
 * An _error_, encapsulated as `ErrorEvent`
 """
-Event = Union{ValueEvent, CompletedEvent, ErrorEvent}
+Event = Union{ValueEvent,CompletedEvent,ErrorEvent}
 
 """
 An `Observer` is a receiver of `Event`s via `onEvent`
@@ -222,8 +222,7 @@ function onComplete(collector::EventCollector)
     close(collector.events)
 end
 
-function Base.iterate(collector::EventCollector,_s=nothing)
-    # println("Getting an event from $collector.events")
+function Base.iterate(collector::EventCollector, _s = nothing)
     evt = try
         # We have to catch an exception in case the channel i closed
         take!(collector.events)
@@ -234,9 +233,7 @@ function Base.iterate(collector::EventCollector,_s=nothing)
             throw(e)
         end
     end
-    # println("Got $evt")
     if isa(evt, CompletedEvent)
-        # println("iteration complete")
         nothing
     elseif isa(evt, ValueEvent)
         return (evt.value, collector)
