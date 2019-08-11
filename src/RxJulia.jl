@@ -2,7 +2,8 @@ module RxJulia
 
 export 
     @rx, Reactor, slot, Event, ValueEvent, CompletedEvent,
-    ErrorEvent, Observer, Observable, collect
+    ErrorEvent, Observer, Observable, events,
+    onEvent, onValue, onComplete, onError
 
 struct ValueEvent{T}
     value::T
@@ -37,17 +38,22 @@ mutable struct Observable
     observers::Observers
 end
 
+Observable() = Observable([])
+
+function notify!(observable::Observable, evt::Event)
+    for observer in observable.observers
+        onEvent(observer, evt)
+    end
+end
+
 """
 A `Reactor` is an `Observer` that is also useful for building `Observer`s that
 are `Observable` as well.
 """
 mutable struct Reactor <: Observer
     op
-    observable
+    observable::Observable
 end
-
-# convert(Observable, reactor::Reactor) = reactor.observable
-
 
 """
 Simply pass the value onto any observers
@@ -58,11 +64,12 @@ function pass(observers, value)
     end
 end
 
-Reactor() = Reactor(pass, [])
+Reactor() = Reactor(pass)
+Reactor(fn) = Reactor(fn, Observable())
 
-function getproperty(reactor::Reactor, field::Symbol)
+function Base.getproperty(reactor::Reactor, field::Symbol)
     if field == :observers
-        reactor.observers
+        reactor.observable.observers
     else
         getfield(reactor, field)
     end
@@ -101,7 +108,7 @@ end
 Notify the `Observer` that no more events will be received.
 """
 function onComplete(reactor::Reactor)
-    notify(reactor.observers) do observer
+    for observer in reactor.observers
         onComplete(observer)
     end
 end
@@ -110,16 +117,21 @@ end
 Notify the `Observer` that there was an error, and no more events will be received.
 """
 function onError(reactor::Reactor, e)
-    notify(reactor.observers) do observer
+    for observer in reactor.observers
         onComplete(observer)
     end
 end
 
 """
-Subscribe an `Observer` to the given `Reactor`
+Subscribe an `Observer` to the given `Observable`
 """
 function subscribe!(observable::Observable, observer)
     push!(observable.observers, observer)
+    observer
+end
+
+function subscribe!(reactor::Reactor, observer)
+    subscribe!(reactor.observable, observer)
     observer
 end
 
@@ -165,7 +177,7 @@ macro rx(blk)
     steps = reverse(blk.args[2].args)
     pipes = map(steps) do p
         if typeof(p) == Expr
-            :( it = chain!($p, it) )
+            :( it = chain!($(esc(p)), it) )
         else
             p
         end
@@ -210,15 +222,24 @@ struct EventCollector <: Observer
     events::Channel
 end
 
-function events()
-    EventCollector(Channel(32))
+function events(sz = 32)
+    EventCollector(Channel(sz))
 end
 
 function onEvent(collector::EventCollector, event::Event)
     put!(collector.events, event)
 end
 
+function onValue(collector::EventCollector, value)
+    onEvent(collector, ValueEvent(value))
+end
+
 function onComplete(collector::EventCollector)
+    close(collector.events)
+end
+
+function onError(collector::EventCollector, e)
+    put!(collector.events, ErrorEvent(e))
     close(collector.events)
 end
 
@@ -253,10 +274,19 @@ Treat an `Array` as an `Observable`
 """
 function subscribe!(observable::Array, observer)
     @async begin 
-        for item in observable
-            onEvent(observer, ValueEvent(item))
+        try
+            for item in observable
+                evt = ValueEvent(item)
+                onEvent(observer, evt)
+            end
+            onComplete(observer)
+        catch e
+            println(stderr, "Caught error $e)")
+            for (exc, bt) in Base.catch_stack()
+                showerror(stdout, exc, bt)
+                println()
+            end            
         end
-        onComplete(observer)
     end
 end
 
