@@ -23,6 +23,14 @@ end
     [evt for evt in evts]  
 end
 
+@test [4,5,6] == begin
+    evts = @rx() do
+        [1,2,3]
+        react(plus3)
+    end
+    [evt for evt in evts]  
+end
+
 @test [1] == begin
     evts = @rx() do
         1

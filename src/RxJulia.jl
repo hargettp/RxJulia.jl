@@ -1,7 +1,7 @@
 module RxJulia
 
 export 
-    @rx, Reactor, slot, Event, ValueEvent, CompletedEvent,
+    @rx, react, Reactor, Event, ValueEvent, CompletedEvent,
     ErrorEvent, Observer, Observable, events,
     onEvent, onValue, onComplete, onError, subscribe!, notify!
 
@@ -59,6 +59,10 @@ end
 """
 Observers = Array{Observer,1}
 
+"""
+An `Observable` is a source of `Event`s, with `Observer`s 
+`subscribe!`ing to the `Observable` in order to receive those events.
+"""
 mutable struct Observable
     observers::Observers
 end
@@ -66,7 +70,7 @@ end
 Observable() = Observable([])
 
 """
-Notify `Observer``` by invoking the block on each
+Notify `Observer` by invoking the block on each
 """
 function notify!(observers, event)
     for observer in observers
@@ -83,7 +87,7 @@ function subscribe!(observable::Observable, observer)
 end
 
 """
-Subscribe the `observer` to the `observable`, and return the `observable`.
+Subscribe the `Observer` to the `Observable`, and return the `Observable`.
 """
 function chain!(observable, observer)
     subscribe!(observable, observer)
@@ -110,6 +114,12 @@ end
 
 Reactor() = Reactor(pass)
 Reactor(fn) = Reactor(fn, Observable())
+
+"""
+Return a `Reactor` around the provided function, thus producing an `Observable`
+that can also be an `Observer` of other `Observable`s.
+"""
+react(fn) = Reactor(fn)
 
 function Base.getproperty(reactor::Reactor, field::Symbol)
     if field == :observers
@@ -242,7 +252,8 @@ end
 # / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 
 """
-Treat any value as an `Observable`
+Treat any value as an `Observable`, and subscribe the `Observer` to it; the value
+will be emitted once with a `ValueEvent`, then a `CompletedEvent` will be emitted.
 """
 function subscribe!(value, observer)
     begin 
@@ -261,7 +272,8 @@ function subscribe!(value, observer)
 end
 
 """
-Treat an `Array` as an `Observable`
+Treat an `Array` as an `Observable`, emitting each of its elements in turn in a `ValueEvent`,
+and concluding with a `CompletedEvent`.
 """
 function subscribe!(observable::Array, observer)
     begin 
