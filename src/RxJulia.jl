@@ -3,7 +3,8 @@ module RxJulia
 export 
     @rx, react, Reactor, Event, ValueEvent, CompletedEvent,
     ErrorEvent, Observer, Observable, events,
-    onEvent, onValue, onComplete, onError, subscribe!, notify!
+    onEvent, onValue, onComplete, onError, subscribe!, notify!,
+    filter
 
 struct ValueEvent{T}
     value::T
@@ -245,12 +246,6 @@ macro rx(blk)
     end
 end
 
-# / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
-#
-# Various types of `Observable`s
-#
-# / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
-
 """
 Treat any value as an `Observable`, and subscribe the `Observer` to it; the value
 will be emitted once with a `ValueEvent`, then a `CompletedEvent` will be emitted.
@@ -291,6 +286,25 @@ function subscribe!(observable::Array, observer)
             end            
         end
     end
+end
+
+# / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
+#
+# Various types of operators for creating new `Observable`s
+#
+# / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
+
+"""
+Apply a filter function such that only values for which the function returns
+true will be passed onto `Observer`s/
+"""
+function filter(fn)
+  react() do observers, value
+    if fn(value)
+      evt = ValueEvent(value)
+      notify!(observers, evt)
+    end
+  end
 end
 
 end # module
