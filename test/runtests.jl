@@ -41,7 +41,7 @@ end
 @test [1,3,5] == begin
     evts = @rx() do
         [1,2,3,4,5,6]
-        RxJulia.filter(isodd)
+        select(isodd)
     end
     [evt for evt in evts]  
 end
