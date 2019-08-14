@@ -1,4 +1,4 @@
-export select
+export select, take
 
 # / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 #
@@ -15,6 +15,21 @@ function select(fn)
     if fn(value)
       evt = ValueEvent(value)
       notify!(observers, evt)
+    end
+  end
+end
+
+"""
+Take only the first n values, discarding the rest. If less than n values observed,
+emit only values observed.
+"""
+function take(n)
+  let counter = n
+    react() do observers, value
+      counter -= 1
+      if counter >= 0
+        notify!(observers, ValueEvent(value))
+      end
     end
   end
 end

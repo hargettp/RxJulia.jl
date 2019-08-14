@@ -45,3 +45,20 @@ end
     end
     [evt for evt in evts]  
 end
+
+@test [1,2,3] == begin
+    evts = @rx() do
+        [1,2,3,4,5,6,7,8,9]
+        take(3)
+    end
+    [evt for evt in evts]  
+end
+
+@test [1,3,5] == begin
+    evts = @rx() do
+        [1,2,3,4,5,6,7,8,9]
+        select(isodd)
+        take(3)
+    end
+    [evt for evt in evts]  
+end
