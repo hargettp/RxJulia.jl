@@ -104,7 +104,14 @@ A `Reactor` is an `Observer` that is also useful for building `Observer`s that
 are `Observable` as well.
 """
 mutable struct Reactor <: Observer
-    op
+    """
+    Function with arguments `(observers::Observers, value)` to handle
+    each `ValueEvent` for the `Reactor`.
+    """
+    fn
+    """
+    An `Observable` to hold subscribed `Observers`
+    """
     observable::Observable
 end
 
@@ -135,7 +142,7 @@ function Base.getproperty(reactor::Reactor, field::Symbol)
 end
 
 function onValue(reactor::Reactor, value)
-    reactor.op(reactor.observers, value)
+    reactor.fn(reactor.observers, value)
 end
 
 """
@@ -161,14 +168,16 @@ function subscribe!(reactor::Reactor, observer)
 end
 
 """
-Return an `Observer` that accumulates events on a `Channel`, which then may be
+An `Observer` that accumulates events on a `Channel`, which then may be
 retrieved for iteration
 """
-
 struct EventCollector <: Observer
     events::Channel
 end
 
+"""
+Return an `EventCollector` to accumulate observed `Event`s
+"""
 function events(sz = 32)
     EventCollector(Channel(sz))
 end
@@ -215,6 +224,7 @@ end
 function Base.IteratorSize(collector::EventCollector)
     Base.SizeUnknown()
 end
+
 """
 Given a do-block where each statement is an `Observable`, 
 `subscribe!` each in sequence to the one proceeding. Return an
