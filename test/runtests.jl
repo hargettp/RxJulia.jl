@@ -62,3 +62,19 @@ end
     end
     [evt for evt in evts]  
 end
+
+@test [1,2,3,4,5,6] == begin
+    evts = @rx() do
+        [1,2,3,4,5,6,7,8,9]
+        drop(3)
+    end
+    [evt for evt in evts]  
+end
+
+@test [] == begin
+    evts = @rx() do
+        [1,2,3,4,5,6]
+        drop(9)
+    end
+    [evt for evt in evts]  
+end
