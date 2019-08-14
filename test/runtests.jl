@@ -46,6 +46,14 @@ end
     [evt for evt in evts]  
 end
 
+@test [2,4,6] == begin
+    evts = @rx() do
+        [1,2,3,4,5,6]
+        reject(isodd)
+    end
+    [evt for evt in evts]  
+end
+
 @test [1,2,3] == begin
     evts = @rx() do
         [1,2,3,4,5,6,7,8,9]
@@ -63,10 +71,18 @@ end
     [evt for evt in evts]  
 end
 
+@test [4,5,6] == begin
+    evts = @rx() do
+        [1,2,3,4,5,6]
+        drop(3)
+    end
+    [evt for evt in evts]  
+end
+
 @test [1,2,3,4,5,6] == begin
     evts = @rx() do
         [1,2,3,4,5,6,7,8,9]
-        drop(3)
+        cut(3)
     end
     [evt for evt in evts]  
 end
@@ -74,7 +90,22 @@ end
 @test [] == begin
     evts = @rx() do
         [1,2,3,4,5,6]
-        drop(9)
+        cut(9)
+    end
+    [evt for evt in evts]  
+end
+
+@test [1,2,3] == begin
+    evts = @rx() do
+        [1,1,2,1,3,3,2,3]
+        distinct()
+    end
+    [evt for evt in evts]  
+end
+
+@test [2,3,4,5] == begin
+    evts = @rx() do
+        span(2,5)
     end
     [evt for evt in evts]  
 end
