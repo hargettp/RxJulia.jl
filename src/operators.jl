@@ -54,8 +54,7 @@ Drop the first n events observed, emitting all others that precede them. If less
 events observed, emit nothing.
 """
 function drop(n)
-    let backlog = Queue{Int64}()
-        counter = n
+    let counter = n
         react() do observers, value
             if counter > 0
                 counter -= 1
