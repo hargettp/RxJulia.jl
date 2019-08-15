@@ -70,7 +70,7 @@ Drop the last n events observed, emitting all others that precede them. If less 
 events observed, emit nothing.
 """
 function cut(n)
-    let backlog = Queue{Int64}()
+    let backlog = Queue{Any}()
         counter = n
         react() do observers, value
             enqueue!(backlog, value)
