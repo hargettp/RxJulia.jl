@@ -249,7 +249,11 @@ macro rx(blk)
     # the array of statements in the closure's block
     steps = reverse(blk.args[2].args)
     pipes = map(steps) do p
-        :( it = chain!($(esc(p)), it) )
+        if typeof(p) == LineNumberNode
+            p
+        else
+            :( it = chain!($(esc(p)), it) )
+        end
     end
     return quote
         let collector = events()
