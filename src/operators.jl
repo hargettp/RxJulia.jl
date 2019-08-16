@@ -1,4 +1,4 @@
-export select, reject, take, drop, cut, distinct, span
+export select, reject, take, keep, drop, cut, distinct, span
 
 using DataStructures
 
@@ -44,6 +44,30 @@ function take(n)
             counter -= 1
             if counter >= 0
                 notify!(observers, ValueEvent(value))
+            end
+        end
+    end
+end
+
+"""
+Keep only the last n values, discarding the rest. If less than n values observed,
+emit only values observed.
+"""
+function keep(n)
+    let backlog = Queue{Any}()
+        dispatch() do observers, evt
+            if isa(evt, ValueEvent)
+                enqueue!(backlog, evt)
+                if length(backlog) > n
+                  dequeue!(backlog)
+                end
+            elseif isa(evt, CompletedEvent)
+                for evt in backlog
+                    notify!(observers, evt)
+                end
+                complete!(observers)
+            else
+                notify!(observers, evt)
             end
         end
     end
@@ -101,6 +125,6 @@ end
 """
 Emit only the integers in the range of m to n, inclusive
 """
-function span(m,n)
-  collect(range(m,length=(n-m+1)))
+function span(m, n)
+    collect(range(m, length = (n - m + 1)))
 end

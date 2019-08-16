@@ -18,7 +18,7 @@ end
 @test [4,5,6] == begin
     evts = @rx() do
         [1,2,3]
-        Reactor(plus3)
+        react(plus3)
     end
     [evt for evt in evts]  
 end
@@ -58,6 +58,14 @@ end
     evts = @rx() do
         [1,2,3,4,5,6,7,8,9]
         take(3)
+    end
+    [evt for evt in evts]  
+end
+
+@test [7,8,9] == begin
+    evts = @rx() do
+        [1,2,3,4,5,6,7,8,9]
+        keep(3)
     end
     [evt for evt in evts]  
 end

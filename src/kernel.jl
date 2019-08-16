@@ -1,7 +1,7 @@
 export 
-    @rx, react, Reactor, Event, ValueEvent, CompletedEvent,
+    @rx, react, dispatch, Event, ValueEvent, CompletedEvent,
     ErrorEvent, Observer, Observable, events,
-    onEvent, onValue, onComplete, onError, subscribe!, notify!
+    onEvent, onValue, onComplete, onError, subscribe!, notify!, dispatch!
 
 # / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 #
@@ -38,6 +38,13 @@ abstract type Observer end
 Deliver an `Event` to the `Observer`
 """
 function onEvent(observer, event)
+    dispatch!(observer, event)
+end
+
+"""
+Dispatch an `Event` received at an `Observer`
+"""
+function dispatch!(observer, event)
     if isa(event, ValueEvent)
         onValue(observer, event.value)
     elseif isa(event, CompletedEvent)
@@ -84,10 +91,33 @@ function notify!(observers, event)
 end
 
 """
+Emit an `ErrorEvent` to `Observers`
+"""
+function error!(obserers, err)
+    evt = ErrorEvent(err)
+    notify!(obserers, evt)
+end
+
+"""
+Emit a `CompletedEvent` to `Observers`
+"""
+function complete!(observers)
+    evt = CompletedEvent()
+    notify!(observers, evt)
+end
+
+"""
 Subscribe an `Observer` to the given `Observable`
 """
 function subscribe!(observable::Observable, observer)
-    push!(observable.observers, observer)
+    subscribe!(observable.observers, observer)
+end
+
+"""
+Add an `Observer` to an existing set of `Observers`
+"""
+function subscribe!(observers::Observers, observer)
+    push!(observers, observer)
     observer
 end
 
@@ -110,9 +140,9 @@ mutable struct Reactor <: Observer
     """
     fn
     """
-    An `Observable` to hold subscribed `Observers`
+    The `Observers` subscribed to this `Reactor`
     """
-    observable::Observable
+    observers::Observers
 end
 
 """
@@ -125,21 +155,13 @@ function pass(observers, value)
 end
 
 Reactor() = Reactor(pass)
-Reactor(fn) = Reactor(fn, Observable())
+Reactor(fn) = Reactor(fn, [])
 
 """
 Return a `Reactor` around the provided function, thus producing an `Observable`
 that can also be an `Observer` of other `Observable`s.
 """
 react(fn) = Reactor(fn)
-
-function Base.getproperty(reactor::Reactor, field::Symbol)
-    if field == :observers
-        reactor.observable.observers
-    else
-        getfield(reactor, field)
-    end
-end
 
 function onValue(reactor::Reactor, value)
     reactor.fn(reactor.observers, value)
@@ -164,7 +186,44 @@ function onError(reactor::Reactor, e)
 end
 
 function subscribe!(reactor::Reactor, observer)
-    subscribe!(reactor.observable, observer)
+    subscribe!(reactor.observers, observer)
+end
+
+"""
+A `Dispatcher` evaluates received `Event` with a function and 
+emits them onward as necessary to its `Observers`
+"""
+struct Dispatcher <: Observer
+    fn
+    observers::Observers
+end
+
+Dispatcher() = Dispatcher(notify!)
+Dispatcher(fn) = Dispatcher(fn, [])
+
+"""
+Return a `Dispatcher` that uses the supplied block to dispatch `Event`s
+"""
+dispatch(fn) = Dispatcher(fn)
+
+function onEvent(dispatcher::Dispatcher, event::Event)
+    dispatcher.fn(dispatcher.observers, event)
+end
+
+function onValue(dispatcher::Dispatcher, value)
+    onEvent(dispatcher, ValueEvent(value))
+end
+
+function onError(dispatcher::Dispatcher, err)
+    onEvent(dispatcher, ErrorEvent(err))
+end
+
+function onComplete(dispatcher::Dispatcher)
+    onEvent(dispatcher, CompletedEvent())
+end
+
+function subscribe!(dispatcher::Dispatcher, observer)
+    subscribe!(dispatcher.observers, observer)
 end
 
 """
