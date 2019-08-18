@@ -7,7 +7,7 @@ using RxJulia
     evts = @rx() do
         [1,2,3]
     end
-    [evt for evt in evts]  
+    [evt for evt in evts]
 end
 
 function plus3(observers, x)
@@ -20,7 +20,7 @@ end
         [1,2,3]
         react(plus3)
     end
-    [evt for evt in evts]  
+    [evt for evt in evts]
 end
 
 @test [4,5,6] == begin
@@ -113,7 +113,7 @@ end
 
 @test [2,3,4,5] == begin
     evts = @rx() do
-        span(2,5)
+        span(2, 5)
     end
     [evt for evt in evts]  
 end

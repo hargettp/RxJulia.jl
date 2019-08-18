@@ -59,7 +59,7 @@ function keep(n)
             if isa(evt, ValueEvent)
                 enqueue!(backlog, evt)
                 if length(backlog) > n
-                  dequeue!(backlog)
+                    dequeue!(backlog)
                 end
             elseif isa(evt, CompletedEvent)
                 for evt in backlog
