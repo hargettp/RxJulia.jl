@@ -123,11 +123,20 @@ Reactor() = Reactor(notify!)
 Reactor(fn) = Reactor(fn, [])
 
 """
-Return a `Reactor` around the provided function, thus producing an `Observable`
+Return a `Reactor` around the provided function which takes `Observers` and an `Event,
+taking action as appropriate, and producing an `Observable`
 that can also be an `Observer` of other `Observable`s.
 """
 dispatch(fn) = Reactor(fn)
-react(fn) = dispatch() do observers, event
+
+"""
+Return a `Reactor` around the provided function which takes `Observers` and a value,
+taking action as appropriate, and producing an `Observable`
+that can also be an `Observer` of other `Observable`s. `CompletedEvent`s and `ErrorEvent`s
+are passed on to `Observers`, while `ValueEvent`s are passed to the supplied function.
+The supplied funciton takes `Observers` and a `value` as arguments.
+"""
+react(fn) = dispatch() do observers, event::Event
     if isa(event, ValueEvent)
         fn(observers, event.value)
     else
@@ -147,25 +156,25 @@ end
 An `Observer` that accumulates events on a `Channel`, which then may be
 retrieved for iteration
 """
-struct EventCollector <: Observer
+struct Collector <: Observer
     events::Channel
 end
 
 """
-Return an `EventCollector` to accumulate observed `Event`s
+Return a `Collector` to accumulate observed `Event`s
 """
 function events(sz = 32)
-    EventCollector(Channel(sz))
+    Collector(Channel(sz))
 end
 
-function onEvent(collector::EventCollector, event::Event)
+function onEvent(collector::Collector, event::Event)
     put!(collector.events, event)
     if !isa(event, ValueEvent)
         close(collector.events)
     end
 end
 
-function Base.iterate(collector::EventCollector, _s = nothing)
+function Base.iterate(collector::Collector, _s = nothing)
     evt = try
         # We have to catch an exception in case the channel i closed
         take!(collector.events)
@@ -187,7 +196,7 @@ function Base.iterate(collector::EventCollector, _s = nothing)
     end
 end
 
-function Base.IteratorSize(collector::EventCollector)
+function Base.IteratorSize(collector::Collector)
     Base.SizeUnknown()
 end
 
