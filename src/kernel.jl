@@ -1,7 +1,7 @@
 export 
     @rx, react, dispatch, Event, ValueEvent, CompletedEvent,
     ErrorEvent, Observer, Observable, events,
-    onEvent, onValue, onComplete, onError, subscribe!, notify!, dispatch!
+    onEvent, subscribe!, notify!
 
 # / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 #
@@ -38,32 +38,6 @@ abstract type Observer end
 Deliver an `Event` to the `Observer`
 """
 function onEvent(observer, event)
-    dispatch!(observer, event)
-end
-
-"""
-Dispatch an `Event` received at an `Observer`
-"""
-function dispatch!(observer, event)
-    if isa(event, ValueEvent)
-        onValue(observer, event.value)
-    elseif isa(event, CompletedEvent)
-        onComplete(observer)
-    else 
-        onError(observer, event)
-    end
-end
-
-"""
-By default observers do nothing upon receiving a `CompletedEvent`
-"""
-function onComplete(observer::Observer)
-end
-
-"""
-By default observers do nothing upon receiving an `ErrorEvent`
-"""
-function onError(observer::Observer, event::ErrorEvent)
 end
 
 """
@@ -145,85 +119,28 @@ mutable struct Reactor <: Observer
     observers::Observers
 end
 
-"""
-Simply pass the value onto any observers
-"""
-function pass(observers, value)
-    for observer in observers 
-        onEvent(observer, value)
-    end
-end
-
-Reactor() = Reactor(pass)
+Reactor() = Reactor(notify!)
 Reactor(fn) = Reactor(fn, [])
 
 """
 Return a `Reactor` around the provided function, thus producing an `Observable`
 that can also be an `Observer` of other `Observable`s.
 """
-react(fn) = Reactor(fn)
-
-function onValue(reactor::Reactor, value)
-    reactor.fn(reactor.observers, value)
-end
-
-"""
-Notify the `Observer` that no more events will be received.
-"""
-function onComplete(reactor::Reactor)
-    for observer in reactor.observers
-        onComplete(observer)
+dispatch(fn) = Reactor(fn)
+react(fn) = dispatch() do observers, event
+    if isa(event, ValueEvent)
+        fn(observers, event.value)
+    else
+        notify!(observers, event)
     end
 end
 
-"""
-Notify the `Observer` that there was an error, and no more events will be received.
-"""
-function onError(reactor::Reactor, e)
-    for observer in reactor.observers
-        onComplete(observer)
-    end
+function onEvent(reactor::Reactor, event::Event)
+    reactor.fn(reactor.observers, event)
 end
 
 function subscribe!(reactor::Reactor, observer)
     subscribe!(reactor.observers, observer)
-end
-
-"""
-A `Dispatcher` evaluates received `Event` with a function and 
-emits them onward as necessary to its `Observers`
-"""
-struct Dispatcher <: Observer
-    fn
-    observers::Observers
-end
-
-Dispatcher() = Dispatcher(notify!)
-Dispatcher(fn) = Dispatcher(fn, [])
-
-"""
-Return a `Dispatcher` that uses the supplied block to dispatch `Event`s
-"""
-dispatch(fn) = Dispatcher(fn)
-
-function onEvent(dispatcher::Dispatcher, event::Event)
-    dispatcher.fn(dispatcher.observers, event)
-end
-
-function onValue(dispatcher::Dispatcher, value)
-    onEvent(dispatcher, ValueEvent(value))
-end
-
-function onError(dispatcher::Dispatcher, err)
-    onEvent(dispatcher, ErrorEvent(err))
-end
-
-function onComplete(dispatcher::Dispatcher)
-    onEvent(dispatcher, CompletedEvent())
-end
-
-function subscribe!(dispatcher::Dispatcher, observer)
-    subscribe!(dispatcher.observers, observer)
 end
 
 """
@@ -243,19 +160,9 @@ end
 
 function onEvent(collector::EventCollector, event::Event)
     put!(collector.events, event)
-end
-
-function onValue(collector::EventCollector, value)
-    onEvent(collector, ValueEvent(value))
-end
-
-function onComplete(collector::EventCollector)
-    close(collector.events)
-end
-
-function onError(collector::EventCollector, e)
-    put!(collector.events, ErrorEvent(e))
-    close(collector.events)
+    if !isa(event, ValueEvent)
+        close(collector.events)
+    end
 end
 
 function Base.iterate(collector::EventCollector, _s = nothing)
@@ -332,7 +239,7 @@ function subscribe!(value, observer)
         try
             evt = ValueEvent(value)
             onEvent(observer, evt)
-            onComplete(observer)
+            onEvent(observer, CompletedEvent())
         catch e
             println(stderr, "Caught error $e)")
             for (exc, bt) in Base.catch_stack()
@@ -354,7 +261,7 @@ function subscribe!(observable::Array, observer)
                 evt = ValueEvent(item)
                 onEvent(observer, evt)
             end
-            onComplete(observer)
+            onEvent(observer, CompletedEvent())
         catch e
             println(stderr, "Caught error $e)")
             for (exc, bt) in Base.catch_stack()
