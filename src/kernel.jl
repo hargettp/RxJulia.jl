@@ -104,33 +104,33 @@ function chain!(observable, observer)
 end
 
 """
-A `Reactor` is an `Observer` that is also useful for building `Observer`s that
+A `Subject` is an `Observer` that is also useful for building `Observer`s that
 are `Observable` as well.
 """
-mutable struct Reactor <: Observer
+mutable struct Subject <: Observer
     """
     Function with arguments `(observers::Observers, value)` to handle
-    each `ValueEvent` for the `Reactor`.
+    each `ValueEvent` for the `Subject`.
     """
     fn
     """
-    The `Observers` subscribed to this `Reactor`
+    The `Observers` subscribed to this `Subject`
     """
     observers::Observers
 end
 
-Reactor() = Reactor(notify!)
-Reactor(fn) = Reactor(fn, [])
+Subject() = Subject(notify!)
+Subject(fn) = Subject(fn, [])
 
 """
-Return a `Reactor` around the provided function which takes `Observers` and an `Event,
+Return a `Subject` around the provided function which takes `Observers` and an `Event,
 taking action as appropriate, and producing an `Observable`
 that can also be an `Observer` of other `Observable`s.
 """
-dispatch(fn) = Reactor(fn)
+dispatch(fn) = Subject(fn)
 
 """
-Return a `Reactor` around the provided function which takes `Observers` and a value,
+Return a `Subject` around the provided function which takes `Observers` and a value,
 taking action as appropriate, and producing an `Observable`
 that can also be an `Observer` of other `Observable`s. `CompletedEvent`s and `ErrorEvent`s
 are passed on to `Observers`, while `ValueEvent`s are passed to the supplied function.
@@ -144,12 +144,12 @@ react(fn) = dispatch() do observers, event::Event
     end
 end
 
-function onEvent(reactor::Reactor, event::Event)
-    reactor.fn(reactor.observers, event)
+function onEvent(subject::Subject, event::Event)
+    subject.fn(subject.observers, event)
 end
 
-function subscribe!(reactor::Reactor, observer)
-    subscribe!(reactor.observers, observer)
+function subscribe!(subject::Subject, observer)
+    subscribe!(subject.observers, observer)
 end
 
 """
