@@ -10,7 +10,7 @@ using DataStructures
 
 """
 Apply a filter function such that only values for which the function returns
-true will be passed onto `Observer`s
+true will be passed onto [`Observer`](@ref)s
 """
 function select(fn)
     react() do observers, value
@@ -23,7 +23,7 @@ end
 
 """
 Apply a filter function such that only values for which the function returns
-false will be passed onto `Observer`s
+false will be passed onto [`Observer`](@ref)s
 """
 function reject(fn)
     react() do observers, value

@@ -10,44 +10,57 @@ export
 #
 # / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 
+"""
+An [`Event`](@ref) containing a value to deliver to an [`Observable`](@ref).
+"""
 struct ValueEvent{T}
     value::T
 end
 
+"""
+An [`Event`](@ref) signifying no more events are available from the originating
+[`Observable`](@ref).
+"""
 struct CompletedEvent
 end
 
+"""
+An [`Event`](@ref) signifying the originating [`Observable`](@ref) encountered an error;
+no more events will be delivered after events of tyie.
+"""
 struct ErrorEvent{E}
     error::E
 end
 
 """
 An `Event` is any of the following:
-* A _value_, encapsulated as `ValueEvent`
-* A _completion_ event, encapsulated as `CompletedEvent`
-* An _error_, encapsulated as `ErrorEvent`
+* A _value_, encapsulated as [`ValueEvent`](@ref)
+* A _completion_ event, encapsulated as [`CompletedEvent`](@ref)
+* An _error_, encapsulated as [`ErrorEvent`](@ref)
 """
 Event = Union{ValueEvent,CompletedEvent,ErrorEvent}
 
 """
-An `Observer` is a receiver of `Event`s via `onEvent`
+An `Observer` is a receiver of [`Event`](@ref)s via [`onEvent`](@ref)
 """
 abstract type Observer end
 
 """
-Deliver an `Event` to the `Observer`
+Deliver an [`Event`](@ref) to the `Observer`
 """
 function onEvent(observer, event)
 end
 
 """
-`Observers` is a collection of subscribed `Observer`s
+`Observers` is a collection of subscribed [`Observer`](@ref)s
 """
 Observers = Array{Observer,1}
 
 """
-An `Observable` is a source of `Event`s, with `Observer`s 
-`subscribe!`ing to the `Observable` in order to receive those events.
+An `Observable` is a source of [`Event`](@ref)s, with `Observer`s 
+`subscribe!`ing to the `Observable` in order to receive those events. 
+
+See [Observable in ReactiveX documentation](http://reactivex.io/documentation/observable.html)
 """
 mutable struct Observable
     observers::Observers
@@ -81,14 +94,14 @@ function complete!(observers)
 end
 
 """
-Subscribe an `Observer` to the given `Observable`
+Subscribe an [`Observer`](@ref) to the given `Observable`
 """
 function subscribe!(observable::Observable, observer)
     subscribe!(observable.observers, observer)
 end
 
 """
-Add an `Observer` to an existing set of `Observers`
+Add an [`Observer`](@ref) to an existing set of `Observers`
 """
 function subscribe!(observers::Observers, observer)
     push!(observers, observer)
@@ -96,7 +109,7 @@ function subscribe!(observers::Observers, observer)
 end
 
 """
-Subscribe the `Observer` to the `Observable`, and return the `Observable`.
+Subscribe the [`Observer`](@ref) to the `Observable`, and return the `Observable`.
 """
 function chain!(observable, observer)
     subscribe!(observable, observer)
@@ -104,7 +117,7 @@ function chain!(observable, observer)
 end
 
 """
-A `Subject` is an `Observer` that is also useful for building `Observer`s that
+A `Subject` is an [`Observer`](@ref) that is also useful for building [`Observer`](@ref)s that
 are `Observable` as well.
 """
 mutable struct Subject <: Observer
@@ -125,14 +138,14 @@ Subject(fn) = Subject(fn, [])
 """
 Return a `Subject` around the provided function which takes `Observers` and an `Event,
 taking action as appropriate, and producing an `Observable`
-that can also be an `Observer` of other `Observable`s.
+that can also be an [`Observer`](@ref) of other `Observable`s.
 """
 dispatch(fn) = Subject(fn)
 
 """
 Return a `Subject` around the provided function which takes `Observers` and a value,
 taking action as appropriate, and producing an `Observable`
-that can also be an `Observer` of other `Observable`s. `CompletedEvent`s and `ErrorEvent`s
+that can also be an [`Observer`](@ref) of other `Observable`s. `CompletedEvent`s and `ErrorEvent`s
 are passed on to `Observers`, while `ValueEvent`s are passed to the supplied function.
 The supplied funciton takes `Observers` and a `value` as arguments.
 """
@@ -153,7 +166,7 @@ function subscribe!(subject::Subject, observer)
 end
 
 """
-An `Observer` that accumulates events on a `Channel`, which then may be
+An [`Observer`](@ref) that accumulates events on a `Channel`, which then may be
 retrieved for iteration
 """
 struct Collector <: Observer
@@ -161,7 +174,7 @@ struct Collector <: Observer
 end
 
 """
-Return a `Collector` to accumulate observed `Event`s
+Return a `Collector` to accumulate observed [`Event`](@ref)s
 """
 function events(sz = 32)
     Collector(Channel(sz))
@@ -208,15 +221,15 @@ the last `Observable` in the block.
 
 Example:
 
-  ```
-  results = @rx() do
-    count
-    filter(:even)
-  end
-  for evt in results
-    # do something with evt
-  end
-  ```
+```@example
+results = @rx() do
+count
+filter(:even)
+end
+for evt in results
+# do something with evt
+end
+```
 """
 macro rx(blk)
     # the blk is actually an expression of type :-> (closure),
@@ -240,7 +253,7 @@ macro rx(blk)
 end
 
 """
-Treat any value as an `Observable`, and subscribe the `Observer` to it; the value
+Treat any value as an `Observable`, and subscribe the [`Observer`](@ref) to it; the value
 will be emitted once with a `ValueEvent`, then a `CompletedEvent` will be emitted.
 """
 function subscribe!(value, observer)
