@@ -1,7 +1,12 @@
 #! /usr/bin/env julia --project --color=yes
 
-if !in(LOAD_PATH,"..")
-  push!(LOAD_PATH,"..")
+using Base.Filesystem
+
+docsDir = abspath(dirname(@__FILE__))
+baseDir = abspath(joinpath(docsDir, "../"))
+
+if !in(LOAD_PATH,baseDir)
+  push!(LOAD_PATH,baseDir)
 end
 
 using Documenter, RxJulia
