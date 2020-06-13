@@ -7,7 +7,7 @@ export @rx,
   ErrorEvent,
   Observer,
   Observable,
-  Subject,
+  Reactor,
   events,
   onEvent,
   subscribe!,
@@ -126,33 +126,35 @@ function chain!(observable, observer)
 end
 
 """
-A `Subject` is an [`Observer`](@ref) that is also useful for building [`Observer`](@ref)s that
+A `Reactor` is an [`Observer`](@ref) that is also useful for building [`Observer`](@ref)s that
 are `Observable` as well.
+
+A `Reactor` is the analogue of a [`Subject`](http://reactivex.io/documentation/subject.html) in the ReactiveX model.
 """
-mutable struct Subject <: Observer
+mutable struct Reactor <: Observer
   """
   Function with arguments `(observers::Observers, value)` to handle
-  each `ValueEvent` for the `Subject`.
+  each `ValueEvent` for the `Reactor`.
   """
   fn::Any
   """
-  The `Observers` subscribed to this `Subject`
+  The `Observers` subscribed to this `Reactor`
   """
   observers::Observers
 end
 
-Subject() = Subject(notify!)
-Subject(fn) = Subject(fn, [])
+Reactor() = Reactor(notify!)
+Reactor(fn) = Reactor(fn, [])
 
 """
-Return a `Subject` around the provided function which takes `Observers` and an `Event,
+Return a `Reactor` around the provided function which takes `Observers` and an `Event,
 taking action as appropriate, and producing an `Observable`
 that can also be an [`Observer`](@ref) of other `Observable`s.
 """
-dispatch(fn) = Subject(fn)
+dispatch(fn) = Reactor(fn)
 
 """
-Return a `Subject` around the provided function which takes `Observers` and a value,
+Return a `Reactor` around the provided function which takes `Observers` and a value,
 taking action as appropriate, and producing an `Observable`
 that can also be an [`Observer`](@ref) of other `Observable`s. `CompletedEvent`s and `ErrorEvent`s
 are passed on to `Observers`, while `ValueEvent`s are passed to the supplied function.
@@ -167,12 +169,12 @@ react(fn) =
     end
   end
 
-function onEvent(subject::Subject, event::Event)
-  subject.fn(subject.observers, event)
+function onEvent(reactor::Reactor, event::Event)
+  reactor.fn(reactor.observers, event)
 end
 
-function subscribe!(subject::Subject, observer)
-  subscribe!(subject.observers, observer)
+function subscribe!(reactor::Reactor, observer)
+  subscribe!(reactor.observers, observer)
 end
 
 """
