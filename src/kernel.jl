@@ -1,7 +1,18 @@
-export 
-    @rx, react, dispatch, Event, ValueEvent, CompletedEvent,
-    ErrorEvent, Observer, Observable, events,
-    onEvent, subscribe!, notify!
+export @rx,
+  react,
+  dispatch,
+  Event,
+  ValueEvent,
+  CompletedEvent,
+  ErrorEvent,
+  Observer,
+  Observable,
+  Subject,
+  events,
+  onEvent,
+  subscribe!,
+  notify!,
+  Collector
 
 # / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 #
@@ -14,22 +25,21 @@ export
 An [`Event`](@ref) containing a value to deliver to an [`Observable`](@ref).
 """
 struct ValueEvent{T}
-    value::T
+  value::T
 end
 
 """
 An [`Event`](@ref) signifying no more events are available from the originating
 [`Observable`](@ref).
 """
-struct CompletedEvent
-end
+struct CompletedEvent end
 
 """
 An [`Event`](@ref) signifying the originating [`Observable`](@ref) encountered an error;
 no more events will be delivered after events of tyie.
 """
 struct ErrorEvent{E}
-    error::E
+  error::E
 end
 
 """
@@ -48,8 +58,7 @@ abstract type Observer end
 """
 Deliver an [`Event`](@ref) to the `Observer`
 """
-function onEvent(observer, event)
-end
+function onEvent(observer, event) end
 
 """
 `Observers` is a collection of subscribed [`Observer`](@ref)s
@@ -57,13 +66,13 @@ end
 Observers = Array{Observer,1}
 
 """
-An `Observable` is a source of [`Event`](@ref)s, with `Observer`s 
-`subscribe!`ing to the `Observable` in order to receive those events. 
+An `Observable` is a source of [`Event`](@ref)s, with [`Observer`](@ref)s 
+[`subscribe!`](@ref)ing to the `Observable` in order to receive those events. 
 
 See [Observable in ReactiveX documentation](http://reactivex.io/documentation/observable.html)
 """
 mutable struct Observable
-    observers::Observers
+  observers::Observers
 end
 
 Observable() = Observable([])
@@ -72,48 +81,48 @@ Observable() = Observable([])
 Notify `Observer` by invoking the block on each
 """
 function notify!(observers, event)
-    for observer in observers
-        onEvent(observer, event)
-    end
+  for observer in observers
+    onEvent(observer, event)
+  end
 end
 
 """
 Emit an `ErrorEvent` to `Observers`
 """
 function error!(obserers, err)
-    evt = ErrorEvent(err)
-    notify!(obserers, evt)
+  evt = ErrorEvent(err)
+  notify!(obserers, evt)
 end
 
 """
 Emit a `CompletedEvent` to `Observers`
 """
 function complete!(observers)
-    evt = CompletedEvent()
-    notify!(observers, evt)
+  evt = CompletedEvent()
+  notify!(observers, evt)
 end
 
 """
 Subscribe an [`Observer`](@ref) to the given `Observable`
 """
 function subscribe!(observable::Observable, observer)
-    subscribe!(observable.observers, observer)
+  subscribe!(observable.observers, observer)
 end
 
 """
 Add an [`Observer`](@ref) to an existing set of `Observers`
 """
 function subscribe!(observers::Observers, observer)
-    push!(observers, observer)
-    observer
+  push!(observers, observer)
+  observer
 end
 
 """
 Subscribe the [`Observer`](@ref) to the `Observable`, and return the `Observable`.
 """
 function chain!(observable, observer)
-    subscribe!(observable, observer)
-    observable
+  subscribe!(observable, observer)
+  observable
 end
 
 """
@@ -121,15 +130,15 @@ A `Subject` is an [`Observer`](@ref) that is also useful for building [`Observer
 are `Observable` as well.
 """
 mutable struct Subject <: Observer
-    """
-    Function with arguments `(observers::Observers, value)` to handle
-    each `ValueEvent` for the `Subject`.
-    """
-    fn
-    """
-    The `Observers` subscribed to this `Subject`
-    """
-    observers::Observers
+  """
+  Function with arguments `(observers::Observers, value)` to handle
+  each `ValueEvent` for the `Subject`.
+  """
+  fn::Any
+  """
+  The `Observers` subscribed to this `Subject`
+  """
+  observers::Observers
 end
 
 Subject() = Subject(notify!)
@@ -149,20 +158,21 @@ that can also be an [`Observer`](@ref) of other `Observable`s. `CompletedEvent`s
 are passed on to `Observers`, while `ValueEvent`s are passed to the supplied function.
 The supplied funciton takes `Observers` and a `value` as arguments.
 """
-react(fn) = dispatch() do observers, event::Event
+react(fn) =
+  dispatch() do observers, event::Event
     if isa(event, ValueEvent)
-        fn(observers, event.value)
+      fn(observers, event.value)
     else
-        notify!(observers, event)
+      notify!(observers, event)
     end
-end
+  end
 
 function onEvent(subject::Subject, event::Event)
-    subject.fn(subject.observers, event)
+  subject.fn(subject.observers, event)
 end
 
 function subscribe!(subject::Subject, observer)
-    subscribe!(subject.observers, observer)
+  subscribe!(subject.observers, observer)
 end
 
 """
@@ -170,47 +180,47 @@ An [`Observer`](@ref) that accumulates events on a `Channel`, which then may be
 retrieved for iteration
 """
 struct Collector <: Observer
-    events::Channel
+  events::Channel
 end
 
 """
 Return a `Collector` to accumulate observed [`Event`](@ref)s
 """
 function events(sz = 32)
-    Collector(Channel(sz))
+  Collector(Channel(sz))
 end
 
 function onEvent(collector::Collector, event::Event)
-    put!(collector.events, event)
-    if !isa(event, ValueEvent)
-        close(collector.events)
-    end
+  put!(collector.events, event)
+  if !isa(event, ValueEvent)
+    close(collector.events)
+  end
 end
 
 function Base.iterate(collector::Collector, _s = nothing)
-    evt = try
-        # We have to catch an exception in case the channel i closed
-        take!(collector.events)
-    catch e
-        if isa(e, InvalidStateException)
-            return nothing
-        else
-            throw(e)
-        end
-    end
-    if isa(evt, CompletedEvent)
-        nothing
-    elseif isa(evt, ValueEvent)
-        return (evt.value, collector)
-    elseif isa(evt, ErrorEvent)
-        throw(evt.error)
+  evt = try
+    # We have to catch an exception in case the channel i closed
+    take!(collector.events)
+  catch e
+    if isa(e, InvalidStateException)
+      return nothing
     else
-        error("Unknown event $show(evt)")
+      throw(e)
     end
+  end
+  if isa(evt, CompletedEvent)
+    nothing
+  elseif isa(evt, ValueEvent)
+    return (evt.value, collector)
+  elseif isa(evt, ErrorEvent)
+    throw(evt.error)
+  else
+    error("Unknown event $show(evt)")
+  end
 end
 
 function Base.IteratorSize(collector::Collector)
-    Base.SizeUnknown()
+  Base.SizeUnknown()
 end
 
 """
@@ -232,24 +242,24 @@ end
 ```
 """
 macro rx(blk)
-    # the blk is actually an expression of type :-> (closure),
-    # and its first arg is the args list (should be () ), followed by
-    # the array of statements in the closure's block
-    steps = reverse(blk.args[2].args)
-    pipes = map(steps) do p
-        if typeof(p) == LineNumberNode
-            p
-        else
-            :( it = chain!($(esc(p)), it) )
-        end
+  # the blk is actually an expression of type :-> (closure),
+  # and its first arg is the args list (should be () ), followed by
+  # the array of statements in the closure's block
+  steps = reverse(blk.args[2].args)
+  pipes = map(steps) do p
+    if typeof(p) == LineNumberNode
+      p
+    else
+      :(it = chain!($(esc(p)), it))
     end
-    return quote
-        let collector = events()
-            it = collector
-            $(pipes...)
-            collector
-        end
+  end
+  return quote
+    let collector = events()
+      it = collector
+      $(pipes...)
+      collector
     end
+  end
 end
 
 """
@@ -257,19 +267,19 @@ Treat any value as an `Observable`, and subscribe the [`Observer`](@ref) to it; 
 will be emitted once with a `ValueEvent`, then a `CompletedEvent` will be emitted.
 """
 function subscribe!(value, observer)
-    begin 
-        try
-            evt = ValueEvent(value)
-            onEvent(observer, evt)
-            onEvent(observer, CompletedEvent())
-        catch e
-            println(stderr, "Caught error $e)")
-            for (exc, bt) in Base.catch_stack()
-                showerror(stdout, exc, bt)
-                println()
-            end            
-        end
+  begin
+    try
+      evt = ValueEvent(value)
+      onEvent(observer, evt)
+      onEvent(observer, CompletedEvent())
+    catch e
+      println(stderr, "Caught error $e)")
+      for (exc, bt) in Base.catch_stack()
+        showerror(stdout, exc, bt)
+        println()
+      end
     end
+  end
 end
 
 """
@@ -277,20 +287,19 @@ Treat an `Array` as an `Observable`, emitting each of its elements in turn in a 
 and concluding with a `CompletedEvent`.
 """
 function subscribe!(observable::Array, observer)
-    begin 
-        try
-            for item in observable
-                evt = ValueEvent(item)
-                onEvent(observer, evt)
-            end
-            onEvent(observer, CompletedEvent())
-        catch e
-            println(stderr, "Caught error $e)")
-            for (exc, bt) in Base.catch_stack()
-                showerror(stdout, exc, bt)
-                println()
-            end            
-        end
+  begin
+    try
+      for item in observable
+        evt = ValueEvent(item)
+        onEvent(observer, evt)
+      end
+      onEvent(observer, CompletedEvent())
+    catch e
+      println(stderr, "Caught error $e)")
+      for (exc, bt) in Base.catch_stack()
+        showerror(stdout, exc, bt)
+        println()
+      end
     end
+  end
 end
-

@@ -15,11 +15,30 @@ end
 using FileWatching
 using Logging
 
-while true
-  cd(docsDir) do
-    run(`julia --color=yes make.jl`)
+@sync begin
+  changes = Channel()
+  @async begin
+    while true
+      @info ">>>  Waiting for changes in $docSrcDir..."
+      change = watch_folder(docSrcDir)
+      put!(changes, change)
+    end
   end
-  # println("\n\nWaiting for changes in $srcDir...")
-  @info "Waiting for changes in $srcDir..."
-  watch_folder(srcDir)
+  @async begin
+    while true
+      @info ">>>  Waiting for changes in $srcDir..."
+      change = watch_folder(srcDir)
+      put!(changes, change)
+    end
+  end
+  @async begin
+    @info ">>>  Triggering initial generation of documentation"
+    put!(changes, :first)
+  end
+  for change in changes
+    cd(docsDir) do
+      run(`julia --color=yes make.jl`)
+    end
+    @info ">>>  Generation complete"
+  end
 end
