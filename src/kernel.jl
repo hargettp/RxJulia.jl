@@ -151,7 +151,7 @@ Return a `Reactor` around the provided function which takes `Observers` and an `
 taking action as appropriate, and producing an `Observable`
 that can also be an [`Observer`](@ref) of other `Observable`s.
 """
-dispatch(fn) = Reactor(fn)
+dispatch(fn)::Reactor = Reactor(fn)
 
 """
 Return a `Reactor` around the provided function which takes `Observers` and a value,
@@ -160,7 +160,7 @@ that can also be an [`Observer`](@ref) of other `Observable`s. `CompletedEvent`s
 are passed on to `Observers`, while `ValueEvent`s are passed to the supplied function.
 The supplied funciton takes `Observers` and a `value` as arguments.
 """
-react(fn) =
+react(fn)::Reactor =
   dispatch() do observers, event::Event
     if isa(event, ValueEvent)
       fn(observers, event.value)
@@ -264,11 +264,12 @@ macro rx(blk)
   end
 end
 
+
 """
-Treat any value as an `Observable`, and subscribe the [`Observer`](@ref) to it; the value
-will be emitted once with a `ValueEvent`, then a `CompletedEvent` will be emitted.
+Treat an `Array` as an `Observable`, emitting each of its elements in turn in a `ValueEvent`,
+and concluding with a `CompletedEvent`.
 """
-function subscribe!(value, observer)
+function subscribe_value!(value, observer)
   begin
     try
       evt = ValueEvent(value)
@@ -284,14 +285,10 @@ function subscribe!(value, observer)
   end
 end
 
-"""
-Treat an `Array` as an `Observable`, emitting each of its elements in turn in a `ValueEvent`,
-and concluding with a `CompletedEvent`.
-"""
-function subscribe!(observable::Array, observer)
+function subscribe_iterable!(iterable, observer)
   begin
     try
-      for item in observable
+      for item in iterable
         evt = ValueEvent(item)
         onEvent(observer, evt)
       end
@@ -304,4 +301,66 @@ function subscribe!(observable::Array, observer)
       end
     end
   end
+end
+
+"""
+Treat any value as an `Observable`, and subscribe the [`Observer`](@ref) to it; the value
+will be emitted once with a [`ValueEvent`](@ref), then a [`CompletedEvent`](@ref) will be emitted. If the
+value is iterable (e.g., `applicable(iterate, value)` returns `true`), then emit
+over each value returned by the iterable and pass on to the [`Observer`](@ref), concluding
+with a [`CompletedEvent`](@ref). Note that strings are treated as an atomic value and not 
+an iterable.
+
+```jldoctest
+# works for booleans
+julia> evts = @rx(() -> true)
+Collector(Channel{Any}(sz_max:32,sz_curr:2))
+
+julia> collect(evts)
+1-element Array{Any,1}:
+ true
+```
+
+```jldoctest
+# works for booleans
+julia> evts = @rx( ()-> 1 )
+Collector(Channel{Any}(sz_max:32,sz_curr:2))
+
+julia> collect(evts)
+1-element Array{Any,1}:
+ 1
+```
+
+```jldoctest
+# works for strings
+julia> evts = @rx( ()-> "foo" )
+Collector(Channel{Any}(sz_max:32,sz_curr:2))
+
+julia> collect(evts)
+1-element Array{Any,1}:
+ "foo"
+```
+
+```jldoctest
+# works for iterables
+julia> evts = @rx( ()-> [1 2 3] )
+Collector(Channel{Any}(sz_max:32,sz_curr:4))
+
+julia> collect(evts)
+3-element Array{Any,1}:
+ 1
+ 2
+ 3
+```
+"""
+function subscribe!(value, observer)
+  if applicable(iterate, value)
+    subscribe_iterable!(value, observer)
+  else
+    subscribe_value!(value, observer)
+  end
+end
+
+function subscribe!(value::String, observer)
+  subscribe_value!(value, observer)
 end

@@ -25,7 +25,7 @@ end
 Apply a filter function such that only values for which the function returns
 false will be passed onto [`Observer`](@ref)s
 """
-function reject(fn)
+function reject(fn)::Reactor
     react() do observers, value
         if !fn(value)
             evt = ValueEvent(value)
