@@ -1,4 +1,4 @@
-#! /usr/bin/env julia --color=yes
+#! /usr/bin/env julia --project --color=yes
 
 if !in(LOAD_PATH,"..")
   push!(LOAD_PATH,"..")
