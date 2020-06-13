@@ -56,6 +56,8 @@ An `Observer` is a receiver of [`Event`](@ref)s via [`onEvent`](@ref)
 abstract type Observer end
 
 """
+    onEvent(observer, event)
+
 Deliver an [`Event`](@ref) to the `Observer`
 """
 function onEvent(observer, event) end
@@ -78,6 +80,8 @@ end
 Observable() = Observable([])
 
 """
+    notify!(observers, event)
+
 Notify `Observer` by invoking the block on each
 """
 function notify!(observers, event)
@@ -87,6 +91,8 @@ function notify!(observers, event)
 end
 
 """
+    error!(obserers, err)
+
 Emit an `ErrorEvent` to `Observers`
 """
 function error!(obserers, err)
@@ -95,6 +101,8 @@ function error!(obserers, err)
 end
 
 """
+    complete!(observers)
+
 Emit a `CompletedEvent` to `Observers`
 """
 function complete!(observers)
@@ -103,14 +111,17 @@ function complete!(observers)
 end
 
 """
-Subscribe an [`Observer`](@ref) to the given `Observable`
+    subscribe!(observable::Observable, observer)
+
+Subscribe an [`Observer`](@ref) to the given `Observable`, return the [`Observer`](@ref)
 """
 function subscribe!(observable::Observable, observer)
   subscribe!(observable.observers, observer)
 end
 
 """
-Add an [`Observer`](@ref) to an existing set of `Observers`
+    subscribe!(observers::Observers, observer)
+Add an [`Observer`](@ref) to an existing set of `Observers`, return the [`Observer`](@ref)
 """
 function subscribe!(observers::Observers, observer)
   push!(observers, observer)
@@ -118,7 +129,9 @@ function subscribe!(observers::Observers, observer)
 end
 
 """
-Subscribe the [`Observer`](@ref) to the `Observable`, and return the `Observable`.
+    chain!(observable, observer)
+
+Subscribe the [`Observer`](@ref) to the `Observable`, and return the [`Observable`](@ref).
 """
 function chain!(observable, observer)
   subscribe!(observable, observer)
@@ -126,6 +139,9 @@ function chain!(observable, observer)
 end
 
 """
+    Reactor() = Reactor(notify!)
+    Reactor(fn) = Reactor(fn, [])
+
 A `Reactor` is an [`Observer`](@ref) that is also useful for building [`Observer`](@ref)s that
 are `Observable` as well.
 
@@ -147,21 +163,24 @@ Reactor() = Reactor(notify!)
 Reactor(fn) = Reactor(fn, [])
 
 """
-Return a `Reactor` around the provided function which takes `Observers` and an `Event,
-taking action as appropriate, and producing an `Observable`
-that can also be an [`Observer`](@ref) of other `Observable`s.
+    dispatch(fn::Function)::Reactor = Reactor(fn)
+
+Return a `Reactor` around the provided function which takes [`Observers`](@ref) and an [`Event`](@ref),
+taking action as appropriate, and producing an [`Observable`](@ref)
+that can also be an [`Observer`](@ref) of other [`Observable`](@ref)s.
 """
-dispatch(fn)::Reactor = Reactor(fn)
+dispatch(fn::Function)::Reactor = Reactor(fn)
 
 """
+    react(fn::Function)::Reactor
 Return a `Reactor` around the provided function which takes `Observers` and a value,
 taking action as appropriate, and producing an `Observable`
 that can also be an [`Observer`](@ref) of other `Observable`s. `CompletedEvent`s and `ErrorEvent`s
 are passed on to `Observers`, while `ValueEvent`s are passed to the supplied function.
 The supplied funciton takes `Observers` and a `value` as arguments.
 """
-react(fn)::Reactor =
-  dispatch() do observers, event::Event
+react(fn::Function)::Reactor =
+  dispatch() do observers::Observers, event::Event
     if isa(event, ValueEvent)
       fn(observers, event.value)
     else
@@ -186,6 +205,7 @@ struct Collector <: Observer
 end
 
 """
+    events(sz = 32)
 Return a `Collector` to accumulate observed [`Event`](@ref)s
 """
 function events(sz = 32)
@@ -226,6 +246,8 @@ function Base.IteratorSize(collector::Collector)
 end
 
 """
+    rx(blk)
+
 Given a do-block where each statement is an `Observable`, 
 `subscribe!` each in sequence to the one proceeding. Return an
 object that one can use to iterate over the events from
@@ -266,8 +288,9 @@ end
 
 
 """
-Treat an `Array` as an `Observable`, emitting each of its elements in turn in a `ValueEvent`,
-and concluding with a `CompletedEvent`.
+    subscribe_value!(value, observer)
+
+Treat a value as an [`Observable`](@ref), emitting the value followed by a [`CompletedEvent`](@ref)
 """
 function subscribe_value!(value, observer)
   begin
@@ -285,6 +308,12 @@ function subscribe_value!(value, observer)
   end
 end
 
+"""
+    subscribe_iterable!(iterable, observer)
+    
+Treat an iteraable as an `Observable`, emitting each of its elements in turn in a [`ValueEvent`](@ref),
+and concluding with a [`CompletedEvent`](@ref).
+"""
 function subscribe_iterable!(iterable, observer)
   begin
     try

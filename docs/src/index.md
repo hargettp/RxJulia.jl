@@ -66,6 +66,17 @@ for evt in evts
 end
 ```
 
+Chaining occurs naturally within the pipeline (see [`select`](@ref) for its meaning in this context):
+
+```@example
+using RxJulia # hide
+evts = @rx() do
+  [1, 2, 3, 4, 5, 6]
+  select(isodd)
+end
+println([evt for evt in evts])
+```
+
 Each pipeline created with [`@rx`](@ref) is itself an [`Observable`](@ref).
 
 ```@example
@@ -84,6 +95,8 @@ end
 ```
 
 ## Kernel
+
+The kernel is the fundamental implementation of the reactive pattern in Julia, independent of any operators that leverage the package's capabilities.
 
 ### Functions
 
@@ -119,6 +132,8 @@ Order = [:constant]
 
 ## Operators
 
+Operators are useful functions for producing [`Reactor`](@ref)s that receive events and decide whether to transform them or skip emitting values to downstream observers.
+
 ### Functions
 
 ```@autodocs
@@ -127,25 +142,7 @@ Pages = ["operators.jl"]
 Order = [:function]
 ```
 
-### Macros
+## Index
 
-```@autodocs
-Modules = [RxJulia]
-Pages = ["operators.jl"]
-Order = [:macro]
+```@index
 ```
-
-### Types
-
-```@autodocs
-Modules = [RxJulia]
-Pages = ["operators.jl"]
-Order = [:type]
-```
-
-### Constants
-
-```@autodocs
-Modules = [RxJulia]
-Pages = ["operators.jl"]
-Order = [:constant]

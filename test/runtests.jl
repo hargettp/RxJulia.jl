@@ -58,6 +58,16 @@ include("./support.jl")
     [evt for evt in evts]
   end
 
+  @test [2, 3, 4] == begin
+    evts = @rx() do
+      [1, 2, 3]
+      fmap() do value
+        value + 1
+      end
+    end
+    [evt for evt in evts]
+  end
+
   @test [1, 2, 3] == begin
     evts = @rx() do
       [1, 2, 3, 4, 5, 6, 7, 8, 9]

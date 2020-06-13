@@ -1,4 +1,4 @@
-export select, reject, take, keep, drop, cut, distinct, span
+export select, reject, fmap, take, keep, drop, cut, distinct, span
 
 using DataStructures
 
@@ -9,10 +9,12 @@ using DataStructures
 # / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 
 """
+    select(fn::Function)
+
 Apply a filter function such that only values for which the function returns
 true will be passed onto [`Observer`](@ref)s
 """
-function select(fn)
+function select(fn::Function)
     react() do observers, value
         if fn(value)
             evt = ValueEvent(value)
@@ -22,10 +24,12 @@ function select(fn)
 end
 
 """
+    reject(fn::Function)::Reactor
+
 Apply a filter function such that only values for which the function returns
 false will be passed onto [`Observer`](@ref)s
 """
-function reject(fn)::Reactor
+function reject(fn::Function)::Reactor
     react() do observers, value
         if !fn(value)
             evt = ValueEvent(value)
@@ -35,6 +39,21 @@ function reject(fn)::Reactor
 end
 
 """
+    fmap(fn::Function)
+
+Apply function to all observed values, and emit the result. Functional equivalent of `map`.
+
+"""
+function fmap(fn::Function)
+    react() do observers, value
+        evt = ValueEvent(fn(value))
+        notify!(observers, evt)
+    end
+end
+
+"""
+    take(n)
+
 Take only the first n values, discarding the rest. If less than n values observed,
 emit only values observed.
 """
@@ -50,6 +69,8 @@ function take(n)
 end
 
 """
+    keep(n)
+
 Keep only the last n values, discarding the rest. If less than n values observed,
 emit only values observed.
 """
@@ -74,6 +95,8 @@ function keep(n)
 end
 
 """
+    drop(n)
+
 Drop the first n events observed, emitting all others that precede them. If less than n 
 events observed, emit nothing.
 """
@@ -90,6 +113,8 @@ function drop(n)
 end
 
 """
+    cut(n)
+
 Drop the last n events observed, emitting all others that precede them. If less than n 
 events observed, emit nothing.
 """
@@ -109,6 +134,8 @@ function cut(n)
 end
 
 """
+    distinct()
+
 Only emit unique values observed
 """
 function distinct()
@@ -123,6 +150,8 @@ function distinct()
 end
 
 """
+    span(m, n)
+
 Emit only the integers in the range of m to n, inclusive
 """
 function span(m, n)
