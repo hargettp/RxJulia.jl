@@ -30,8 +30,7 @@ for event in events
 end
 ```
 
-Note that intermediate stages in a pipeline are [`Reactor`](@ref)s, capable of both being an [`Observer`](@ref) and an [`Observable`](@ref). Both the beginning and the end of the pipeline should be an [`Observable`](@ref) (of course, another
-`Reactor` is fine too). A [`Reactor`](@ref) is the analogue of a [`Subject`](http://reactivex.io/documentation/subject.html) in the ReactiveX model.
+Note that intermediate stages in a pipeline are [`Reactor`](@ref)s, capable of both being an [`Observer`](@ref) and an [`Observable`](@ref). Both the beginning and the end of the pipeline should be an [`Observable`](@ref) (of course, another [`Reactor`](@ref) is fine too). A [`Reactor`](@ref) is the analogue of a [`Subject`](http://reactivex.io/documentation/subject.html) in the ReactiveX model.
 
 When using `@rx`, a special observable, a [`Collector`](@ref), is added to the end of the chain, resulting in an object suitable for iteration. Iteration ends when a [`CompletedEvent`](@ref) or an [`ErrorEvent`](@ref) are encountered. Thus, it is possible to iterate over the events generated from the created pipeline.
 

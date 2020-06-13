@@ -65,7 +65,7 @@ function onEvent(observer, event) end
 """
 `Observers` is a collection of subscribed [`Observer`](@ref)s
 """
-Observers = Array{Observer,1}
+Observers = Vector{Observer}
 
 """
 An `Observable` is a source of [`Event`](@ref)s, with [`Observer`](@ref)s 
@@ -82,7 +82,7 @@ Observable() = Observable([])
 """
     notify!(observers, event)
 
-Notify `Observer` by invoking the block on each
+Notify [`Observer`](@ref) by invoking the block on each
 """
 function notify!(observers, event)
   for observer in observers
@@ -93,7 +93,7 @@ end
 """
     error!(obserers, err)
 
-Emit an `ErrorEvent` to `Observers`
+Emit an [`ErrorEvent`](@ref) to [`Observers`](@ref)
 """
 function error!(obserers, err)
   evt = ErrorEvent(err)
@@ -103,7 +103,7 @@ end
 """
     complete!(observers)
 
-Emit a `CompletedEvent` to `Observers`
+Emit a `CompletedEvent`](@ref) to [`Observers`](@ref)
 """
 function complete!(observers)
   evt = CompletedEvent()
@@ -113,7 +113,7 @@ end
 """
     subscribe!(observable::Observable, observer)
 
-Subscribe an [`Observer`](@ref) to the given `Observable`, return the [`Observer`](@ref)
+Subscribe an [`Observer`](@ref) to the given [`Observable`](@ref), return the [`Observer`](@ref)
 """
 function subscribe!(observable::Observable, observer)
   subscribe!(observable.observers, observer)
@@ -121,7 +121,7 @@ end
 
 """
     subscribe!(observers::Observers, observer)
-Add an [`Observer`](@ref) to an existing set of `Observers`, return the [`Observer`](@ref)
+Add an [`Observer`](@ref) to an existing set of [`Observers`](@ref), return the [`Observer`](@ref)
 """
 function subscribe!(observers::Observers, observer)
   push!(observers, observer)
@@ -131,7 +131,8 @@ end
 """
     chain!(observable, observer)
 
-Subscribe the [`Observer`](@ref) to the `Observable`, and return the [`Observable`](@ref).
+Subscribe the [`Observer`](@ref) to the [`Observable`](@ref) using [`subscribe!`](@ref), 
+and return the [`Observable`](@ref).
 """
 function chain!(observable, observer)
   subscribe!(observable, observer)
@@ -143,7 +144,7 @@ end
     Reactor(fn) = Reactor(fn, [])
 
 A `Reactor` is an [`Observer`](@ref) that is also useful for building [`Observer`](@ref)s that
-are `Observable` as well.
+are [`Observable`](@ref) as well.
 
 A `Reactor` is the analogue of a [`Subject`](http://reactivex.io/documentation/subject.html) in the ReactiveX model.
 """
@@ -165,19 +166,20 @@ Reactor(fn) = Reactor(fn, [])
 """
     dispatch(fn::Function)::Reactor = Reactor(fn)
 
-Return a `Reactor` around the provided function which takes [`Observers`](@ref) and an [`Event`](@ref),
-taking action as appropriate, and producing an [`Observable`](@ref)
+Return a [`Reactor`](@ref) around the provided function which takes [`Observers`](@ref) 
+and an [`Event`](@ref), taking action as appropriate, and producing an [`Observable`](@ref)
 that can also be an [`Observer`](@ref) of other [`Observable`](@ref)s.
 """
 dispatch(fn::Function)::Reactor = Reactor(fn)
 
 """
     react(fn::Function)::Reactor
-Return a `Reactor` around the provided function which takes `Observers` and a value,
-taking action as appropriate, and producing an `Observable`
-that can also be an [`Observer`](@ref) of other `Observable`s. `CompletedEvent`s and `ErrorEvent`s
-are passed on to `Observers`, while `ValueEvent`s are passed to the supplied function.
-The supplied funciton takes `Observers` and a `value` as arguments.
+Return a `[Reactor`](@ref) around the provided function which takes [`Observers`](@ref) 
+and a value, taking action as appropriate, and producing an [`Observable`](@ref)
+that can also be an [`Observer`](@ref) of other [`Observable`](@ref)s. [`CompletedEvent`]](@ref)s
+and [`ErrorEvent`](@ref)s are passed on to [`Observers`](@ref), while [`ValueEvent`]](@ref)s
+are passed to the supplied function. The supplied function takes [`Observers`] and a value
+as arguments.
 """
 react(fn::Function)::Reactor =
   dispatch() do observers::Observers, event::Event
@@ -206,7 +208,7 @@ end
 
 """
     events(sz = 32)
-Return a `Collector` to accumulate observed [`Event`](@ref)s
+Return a [`Collector`](@ref) to accumulate observed [`Event`](@ref)s
 """
 function events(sz = 32)
   Collector(Channel(sz))
@@ -248,10 +250,10 @@ end
 """
     rx(blk)
 
-Given a do-block where each statement is an `Observable`, 
-`subscribe!` each in sequence to the one proceeding. Return an
+Given a do-block where each statement is an [`Observable`](@ref), 
+[`subscribe!`](@ref) each in sequence to the one proceeding. Return an
 object that one can use to iterate over the events from
-the last `Observable` in the block.
+the last [`Observable`](@ref) in the block.
 
 Example:
 
@@ -310,9 +312,9 @@ end
 
 """
     subscribe_iterable!(iterable, observer)
-    
-Treat an iteraable as an `Observable`, emitting each of its elements in turn in a [`ValueEvent`](@ref),
-and concluding with a [`CompletedEvent`](@ref).
+
+Treat an iteraable as an [`Observable`](@ref), emitting each of its elements in turn 
+in a [`ValueEvent`](@ref), and concluding with a [`CompletedEvent`](@ref).
 """
 function subscribe_iterable!(iterable, observer)
   begin
@@ -333,7 +335,7 @@ function subscribe_iterable!(iterable, observer)
 end
 
 """
-Treat any value as an `Observable`, and subscribe the [`Observer`](@ref) to it; the value
+Treat any value as an [`Observable`](@ref), and subscribe the [`Observer`](@ref) to it; the value
 will be emitted once with a [`ValueEvent`](@ref), then a [`CompletedEvent`](@ref) will be emitted. If the
 value is iterable (e.g., `applicable(iterate, value)` returns `true`), then emit
 over each value returned by the iterable and pass on to the [`Observer`](@ref), concluding
