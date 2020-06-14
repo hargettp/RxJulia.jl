@@ -279,8 +279,10 @@ macro rx(blk)
   end
   return quote
     let collector = events()
-      it = collector
-      $(pipes...)
+      @async begin
+        it = collector
+        $(pipes...)
+      end
       collector
     end
   end

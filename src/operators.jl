@@ -1,4 +1,4 @@
-export select, reject, fmap, take, keep, drop, cut, distinct, span, merge
+export select, reject, fmap, take, keep, drop, cut, distinct, span, merge, zip
 
 using DataStructures
 using Base.Threads: Atomic, atomic_sub!
@@ -201,4 +201,20 @@ function merge(observables...)
     end
     merger
   end
+end
+
+"""
+    zip(observables...)
+
+Given one or more [`Observable`](@ref)s, read one value at a time from each
+and collect into a `Tuple`, stopping when either there is an [`ErrorEvent`](@ref)
+or any [`CompletedEvent`](@ref)
+"""
+function zip(observables...)
+    collectors = map(observables) do observable
+        @rx() do
+            observable
+        end
+    end
+    Base.Iterators.zip(collectors...)
 end
