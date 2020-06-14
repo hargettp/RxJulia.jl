@@ -262,9 +262,7 @@ results = @rx() do
 count
 filter(:even)
 end
-for evt in results
-# do something with evt
-end
+printlin([result for result in results])
 ```
 """
 macro rx(blk)
@@ -301,11 +299,12 @@ function subscribe_value!(value, observer)
       onEvent(observer, evt)
       onEvent(observer, CompletedEvent())
     catch e
-      println(stderr, "Caught error $e)")
+      println(stderr, "Caught error $e")
       for (exc, bt) in Base.catch_stack()
         showerror(stdout, exc, bt)
         println()
       end
+      onEvent(observer, ErrorEvent(e))
     end
   end
 end
@@ -325,11 +324,12 @@ function subscribe_iterable!(iterable, observer)
       end
       onEvent(observer, CompletedEvent())
     catch e
-      println(stderr, "Caught error $e)")
+      println(stderr, "Caught error $e")
       for (exc, bt) in Base.catch_stack()
         showerror(stdout, exc, bt)
         println()
       end
+      onEvent(observer, ErrorEvent(e))
     end
   end
 end
