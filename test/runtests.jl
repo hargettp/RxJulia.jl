@@ -132,4 +132,14 @@ include("./support.jl")
     [evt for evt in evts]
   end
 
+  @test Set([1 2 3 4 5 6 7]) == begin
+    evts3 = @rx() do
+      let evts1 = @rx(() -> [1 2 3])
+        evts2 = @rx(() -> [4 5 6 7])
+        RxJulia.merge(evts1, evts2)
+      end
+    end
+    Set([evt for evt in evts3])
+  end
+
 end
