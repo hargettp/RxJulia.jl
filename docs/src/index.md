@@ -65,13 +65,13 @@ for evt in evts
 end
 ```
 
-Chaining occurs naturally within the pipeline (see [`select`](@ref) for its meaning in this context):
+Chaining occurs naturally within the pipeline (see [`detect`](@ref) for its meaning in this context):
 
 ```@example
 using RxJulia # hide
 evts = @rx() do
   [1, 2, 3, 4, 5, 6]
-  select(isodd)
+  detect(isodd)
 end
 println([evt for evt in evts])
 ```

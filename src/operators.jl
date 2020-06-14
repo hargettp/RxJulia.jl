@@ -1,4 +1,4 @@
-export select, reject, fmap, take, keep, drop, cut, distinct, span, merge, zip
+export detect, ignore, fmap, take, keep, drop, cut, distinct, span, merge, zip
 
 using DataStructures
 using Base.Threads: Atomic, atomic_sub!
@@ -10,12 +10,12 @@ using Base.Threads: Atomic, atomic_sub!
 # / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 
 """
-    select(fn::Function)
+    detect(fn::Function)
 
 Apply a filter function such that only values for which the function returns
-true will be passed onto [`Observer`](@ref)s
+true will be passed onto [`Observer`](@ref)s. See [`ignore`](@ref).
 """
-function select(fn::Function)
+function detect(fn::Function)
   react() do observers, value
     if fn(value)
       evt = ValueEvent(value)
@@ -25,12 +25,12 @@ function select(fn::Function)
 end
 
 """
-    reject(fn::Function)::Reactor
+    ignore(fn::Function)::Reactor
 
 Apply a filter function such that only values for which the function returns
-false will be passed onto [`Observer`](@ref)s
+false will be passed onto [`Observer`](@ref)s. See [`detect`](@ref).
 """
-function reject(fn::Function)::Reactor
+function ignore(fn::Function)::Reactor
   react() do observers, value
     if !fn(value)
       evt = ValueEvent(value)
@@ -56,7 +56,7 @@ end
     take(n)
 
 Take only the first n values, discarding the rest. If less than n values observed,
-emit only values observed.
+emit only values observed. See [`keep`](@ref).
 """
 function take(n)
   let counter = n
@@ -73,7 +73,7 @@ end
     keep(n)
 
 Keep only the last n values, discarding the rest. If less than n values observed,
-emit only values observed.
+emit only values observed. See [`take`](@ref.
 """
 function keep(n)
   let backlog = Queue{Any}()
@@ -99,7 +99,7 @@ end
     drop(n)
 
 Drop the first n events observed, emitting all others that precede them. If less than n 
-events observed, emit nothing.
+events observed, emit nothing. See [`cut`](@ref).
 """
 function drop(n)
   let counter = n
@@ -117,7 +117,7 @@ end
     cut(n)
 
 Drop the last n events observed, emitting all others that precede them. If less than n 
-events observed, emit nothing.
+events observed, emit nothing. See [`drop`](@ref)
 """
 function cut(n)
   let backlog = Queue{Any}()
@@ -153,7 +153,8 @@ end
 """
     span(m, n)
 
-Emit only the integers in the range of m to n, inclusive
+Emit only the integers in the range of m to n, inclusive. Effectively an explicit alternative 
+to using range literal `m:n`.
 """
 function span(m, n)
   collect(range(m, length = (n - m + 1)))
