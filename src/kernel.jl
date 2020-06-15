@@ -91,19 +91,19 @@ function notify!(observers, event)
 end
 
 """
-    error!(obserers, err)
+    error!(observers, err)
 
 Emit an [`ErrorEvent`](@ref) to [`Observers`](@ref)
 """
-function error!(obserers, err)
+function error!(observers, err)
   evt = ErrorEvent(err)
-  notify!(obserers, evt)
+  notify!(observers, evt)
 end
 
 """
     complete!(observers)
 
-Emit a `CompletedEvent`](@ref) to [`Observers`](@ref)
+Emit a [`CompletedEvent`](@ref) to [`Observers`](@ref)
 """
 function complete!(observers)
   evt = CompletedEvent()
@@ -174,11 +174,11 @@ dispatch(fn::Function)::Reactor = Reactor(fn)
 
 """
     react(fn::Function)::Reactor
-Return a `[Reactor`](@ref) around the provided function which takes [`Observers`](@ref) 
+Return a [`Reactor`](@ref) around the provided function which takes [`Observers`](@ref) 
 and a value, taking action as appropriate, and producing an [`Observable`](@ref)
 that can also be an [`Observer`](@ref) of other [`Observable`](@ref)s. [`CompletedEvent`](@ref)s
 and [`ErrorEvent`](@ref)s are passed on to [`Observers`](@ref), while [`ValueEvent`](@ref)s
-are passed to the supplied function. The supplied function takes [`Observers`] and a value
+are passed to the supplied function. The supplied function takes [`Observers`](@ref) and a value
 as arguments.
 """
 react(fn::Function)::Reactor =
@@ -207,11 +207,13 @@ struct Collector <: Observer
 end
 
 """
-    events(sz = 32)
-Return a [`Collector`](@ref) to accumulate observed [`Event`](@ref)s
+    events(buffer = 0)
+Return a [`Collector`](@ref) to accumulate observed [`Event`](@ref)s. If set to a value
+greater than 0, then events will be buffered with a `Channel` with the specified buffer size,
+throttling incoming events until the channel has empty slots.
 """
-function events(sz = 32)
-  Collector(Channel(sz))
+function events(buffer = 0)
+  Collector(Channel(buffer))
 end
 
 function onEvent(collector::Collector, event::Event)
@@ -248,12 +250,14 @@ function Base.IteratorSize(collector::Collector)
 end
 
 """
-    rx(blk)
+    rx(blk,buffer=0)
 
 Given a do-block where each statement is an [`Observable`](@ref), 
 [`subscribe!`](@ref) each in sequence to the one proceeding. Return an
 object that one can use to iterate over the events from
-the last [`Observable`](@ref) in the block.
+the last [`Observable`](@ref) in the block. The value of `buffer` is
+passed to [`events`](@ref) in order to create a potentially buffered `Channel`
+for the [`Collector`](@ref) at the end of the pipeline.
 
 Example:
 
@@ -265,7 +269,7 @@ end
 printlin([result for result in results])
 ```
 """
-macro rx(blk)
+macro rx(blk, buffer=0)
   # the blk is actually an expression of type :-> (closure),
   # and its first arg is the args list (should be () ), followed by
   # the array of statements in the closure's block
@@ -278,7 +282,7 @@ macro rx(blk)
     end
   end
   return quote
-    let collector = events()
+    let collector = events($(esc(buffer)))
       @async begin
         it = collector
         $(pipes...)

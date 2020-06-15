@@ -73,7 +73,7 @@ end
     keep(n)
 
 Keep only the last n values, discarding the rest. If less than n values observed,
-emit only values observed. See [`take`](@ref.
+emit only values observed. See [`take`](@ref).
 """
 function keep(n)
   let backlog = Queue{Any}()
