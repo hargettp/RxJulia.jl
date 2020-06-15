@@ -176,8 +176,8 @@ dispatch(fn::Function)::Reactor = Reactor(fn)
     react(fn::Function)::Reactor
 Return a `[Reactor`](@ref) around the provided function which takes [`Observers`](@ref) 
 and a value, taking action as appropriate, and producing an [`Observable`](@ref)
-that can also be an [`Observer`](@ref) of other [`Observable`](@ref)s. [`CompletedEvent`]](@ref)s
-and [`ErrorEvent`](@ref)s are passed on to [`Observers`](@ref), while [`ValueEvent`]](@ref)s
+that can also be an [`Observer`](@ref) of other [`Observable`](@ref)s. [`CompletedEvent`](@ref)s
+and [`ErrorEvent`](@ref)s are passed on to [`Observers`](@ref), while [`ValueEvent`](@ref)s
 are passed to the supplied function. The supplied function takes [`Observers`] and a value
 as arguments.
 """
