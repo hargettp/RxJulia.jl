@@ -165,7 +165,7 @@ struct Merge
   collector::Collector
 end
 
-Merge(observables) = Merge(Atomic{Int}(length(observables) - 1), events())
+Merge(observables) = Merge(Atomic{Int}(length(observables) - 1), collector())
 
 function onEvent(merger::Merge, event::Event)
   if isa(event, CompletedEvent)

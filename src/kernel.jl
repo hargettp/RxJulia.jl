@@ -8,7 +8,7 @@ export @rx,
   Observer,
   Observable,
   Reactor,
-  events,
+  collector,
   onEvent,
   subscribe!,
   notify!,
@@ -207,12 +207,12 @@ struct Collector <: Observer
 end
 
 """
-    events(buffer = 0)
+    collector(buffer = 0)
 Return a [`Collector`](@ref) to accumulate observed [`Event`](@ref)s. If set to a value
 greater than 0, then events will be buffered with a `Channel` with the specified buffer size,
 throttling incoming events until the channel has empty slots.
 """
-function events(buffer = 0)
+function collector(buffer = 0)
   Collector(Channel(buffer))
 end
 
@@ -256,7 +256,7 @@ Given a do-block where each statement is an [`Observable`](@ref),
 [`subscribe!`](@ref) each in sequence to the one proceeding. Return an
 object that one can use to iterate over the events from
 the last [`Observable`](@ref) in the block. The value of `buffer` is
-passed to [`events`](@ref) in order to create a potentially buffered `Channel`
+passed to [`collector`](@ref) in order to create a potentially buffered `Channel`
 for the [`Collector`](@ref) at the end of the pipeline.
 
 Example:
@@ -282,12 +282,12 @@ macro rx(blk, buffer=0)
     end
   end
   return quote
-    let collector = events($(esc(buffer)))
+    let evts = collector($(esc(buffer)))
       @async begin
-        it = collector
+        it = evts
         $(pipes...)
       end
-      collector
+      evts
     end
   end
 end
