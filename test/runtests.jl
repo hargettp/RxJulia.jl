@@ -28,6 +28,16 @@ include("./support.jl")
   end
 
   @test [4, 5, 6] == begin
+    evts1 = @rx() do
+      [1, 2, 3]
+    end
+    evts2 = @rx(evts1) do
+      react(plus3)
+    end
+    [evt for evt in evts2]
+  end
+
+  @test [4, 5, 6] == begin
     evts = @rx() do
       [1, 2, 3]
       react(plus3)

@@ -11,6 +11,7 @@ export @rx,
   collector,
   onEvent,
   subscribe!,
+  chain!,
   notify!,
   Collector
 
@@ -250,14 +251,20 @@ function Base.IteratorSize(collector::Collector)
 end
 
 """
-    rx(blk,buffer=0)
+    rx(blk,source=nothing; buffer=0)
 
 Given a do-block where each statement is an [`Observable`](@ref), 
-[`subscribe!`](@ref) each in sequence to the one proceeding. Return an
-object that one can use to iterate over the events from
-the last [`Observable`](@ref) in the block. The value of `buffer` is
-passed to [`collector`](@ref) in order to create a potentially buffered `Channel`
-for the [`Collector`](@ref) at the end of the pipeline.
+[`subscribe!`](@ref) to each in sequence to the one proceeding using [`chain!`](@ref). 
+Return an object that one can use to iterate over the events from
+the last [`Observable`](@ref) in the block. 
+
+If source (a positional argument) is provided and is not `nothing`, then it is used as the 
+initial  [`Observable`](@ref) in the pipeline; this can be useful if the result of one 
+pipeline needs to be fed into another pipeline as the initial [`Observable`](@ref).
+
+The value of `buffer` (a keyword argument is passed to [`collector`](@ref) in order to 
+create a potentially buffered `Channel` for the [`Collector`](@ref) at 
+the end of the pipeline.
 
 Example:
 
@@ -269,11 +276,21 @@ end
 printlin([result for result in results])
 ```
 """
-macro rx(blk, buffer=0)
+macro rx(args...)
   # the blk is actually an expression of type :-> (closure),
   # and its first arg is the args list (should be () ), followed by
   # the array of statements in the closure's block
-  steps = reverse(blk.args[2].args)
+  blk, posargs, kwargs = macroArguments(args)
+  buffer = get(kwargs, :buffer, 0)
+  source = if length(posargs) >= 1
+    posargs[1]
+  else
+    :nothing
+  end
+  steps = Vector(reverse(blk.args[2].args))
+  if source !== :nothing
+    push!(steps, source)
+  end
   pipes = map(steps) do p
     if typeof(p) == LineNumberNode
       p
