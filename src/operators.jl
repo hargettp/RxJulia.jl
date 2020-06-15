@@ -1,4 +1,4 @@
-export detect, ignore, fmap, take, keep, drop, cut, distinct, span, merge, zip
+export detect, ignore, fmap, take, keep, drop, cut, distinct, span, merge, zip, sum, average, max, min
 
 using DataStructures
 using Base.Threads: Atomic, atomic_sub!
@@ -212,10 +212,92 @@ and collect into a `Tuple`, stopping when either there is an [`ErrorEvent`](@ref
 or any [`CompletedEvent`](@ref)
 """
 function zip(observables...)
-    collectors = map(observables) do observable
-        @rx() do
-            observable
-        end
+  collectors = map(observables) do observable
+    @rx() do
+      observable
     end
-    Base.Iterators.zip(collectors...)
+  end
+  Base.Iterators.zip(collectors...)
+end
+
+"""
+    sum()
+
+Compute a sum of all values observed.
+"""
+function sum()
+  let total = 0
+    dispatch() do observers::Observers, event::Event
+      if isa(event, ValueEvent)
+        total += event.value
+      elseif isa(event, CompletedEvent)
+        notify!(observers, ValueEvent(total))
+        complete!(observers)
+      else
+        notify!(observers, event)
+      end
+    end
+  end
+end
+
+"""
+    average()
+
+Compute an average of all values observed.
+"""
+function average()
+  let total = 0
+    count = 0
+    dispatch() do observers::Observers, event::Event
+      if isa(event, ValueEvent)
+        total += event.value
+        count += 1
+      elseif isa(event, CompletedEvent)
+        notify!(observers, ValueEvent(total / count))
+        complete!(observers)
+      else
+        notify!(observers, event)
+      end
+    end
+  end
+end
+
+"""
+    max()
+
+Compute the max of all values observed.
+"""
+function max()
+  let maxSoFar = -Inf
+    dispatch() do observers::Observers, event::Event
+      if isa(event, ValueEvent)
+        maxSoFar = Base.max(maxSoFar, event.value)
+      elseif isa(event, CompletedEvent)
+        notify!(observers, ValueEvent(maxSoFar))
+        complete!(observers)
+      else
+        notify!(observers, event)
+      end
+    end
+  end
+end
+
+"""
+    min()
+
+Compute min of all values observed.
+"""
+function min()
+  let minSoFar = Inf
+    dispatch() do observers::Observers, event::Event
+      if isa(event, ValueEvent)
+        minSoFar = Base.min(minSoFar, event.value)
+      elseif isa(event, CompletedEvent)
+        notify!(observers, ValueEvent(minSoFar))
+        complete!(observers)
+      else
+        notify!(observers, event)
+      end
+    end
+  end
 end

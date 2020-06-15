@@ -142,14 +142,46 @@ include("./support.jl")
     Set([evt for evt in evts3])
   end
 
-  @test [ (1,4), (2,5), (3,6) ] == begin
+  @test [(1, 4), (2, 5), (3, 6)] == begin
     evts3 = @rx() do
       let evts1 = @rx(() -> [1 2 3])
-        evts2 = @rx(() -> [4 5 6 ])
+        evts2 = @rx(() -> [4 5 6])
         RxJulia.zip(evts1, evts2)
       end
     end
     [evt for evt in evts3]
+  end
+
+  @test [6] == begin
+    evts = @rx() do
+      [1 2 3]
+      RxJulia.sum()
+    end
+    [evt for evt in evts]
+  end
+
+  @test [2] == begin
+    evts = @rx() do
+      [1 2 3]
+      RxJulia.average()
+    end
+    [evt for evt in evts]
+  end
+
+  @test [3] == begin
+    evts = @rx() do
+      [1 2 3]
+      RxJulia.max()
+    end
+    [evt for evt in evts]
+  end
+
+  @test [1] == begin
+    evts = @rx() do
+      [1 2 3]
+      RxJulia.min()
+    end
+    [evt for evt in evts]
   end
 
 end
