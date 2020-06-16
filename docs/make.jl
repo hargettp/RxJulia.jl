@@ -12,5 +12,5 @@ end
 using Documenter, RxJulia
 
 makedocs(
-  sitename="Documentation for RxJulia.jl"
+  sitename="RxJulia.jl"
   )

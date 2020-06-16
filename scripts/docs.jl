@@ -15,22 +15,20 @@ end
 using FileWatching
 using Logging
 
+function watchDir(changes,dir)
+  @async begin
+    while true
+      @info ">>>  Waiting for changes in $dir..."
+      change = watch_folder(dir)
+      put!(changes, change)
+    end
+  end
+end
+
 @sync begin
   changes = Channel()
-  @async begin
-    while true
-      @info ">>>  Waiting for changes in $docSrcDir..."
-      change = watch_folder(docSrcDir)
-      put!(changes, change)
-    end
-  end
-  @async begin
-    while true
-      @info ">>>  Waiting for changes in $srcDir..."
-      change = watch_folder(srcDir)
-      put!(changes, change)
-    end
-  end
+  watchDir(changes, docSrcDir)
+  watchDir(changes, srcDir)
   @async begin
     @info ">>>  Triggering initial generation of documentation"
     put!(changes, :first)
