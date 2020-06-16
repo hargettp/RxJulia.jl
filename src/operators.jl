@@ -1,4 +1,4 @@
-export detect, ignore, fmap, take, keep, drop, cut, distinct, span, merge, zip, sum, average, max, min
+export detect, ignore, fmap, take, keep, drop, cut, distinct, span, merge, zip, sum, average, max, min, count
 
 using DataStructures
 using Base.Threads: Atomic, atomic_sub!
@@ -294,6 +294,26 @@ function min()
         minSoFar = Base.min(minSoFar, event.value)
       elseif isa(event, CompletedEvent)
         notify!(observers, ValueEvent(minSoFar))
+        complete!(observers)
+      else
+        notify!(observers, event)
+      end
+    end
+  end
+end
+
+"""
+    count()
+
+Count the number of values observed
+"""
+function count()
+  let count = 0
+    dispatch() do observers::Observers, event::Event
+      if isa(event, ValueEvent)
+        count += 1
+      elseif isa(event, CompletedEvent)
+        notify!(observers, ValueEvent(count))
         complete!(observers)
       else
         notify!(observers, event)
