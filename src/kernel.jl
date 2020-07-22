@@ -117,14 +117,14 @@ end
 Subscribe an [`Observer`](@ref) to the given [`Observable`](@ref), return the [`Observer`](@ref)
 """
 function subscribe!(observable::Observable, observer)
-  subscribe!(observable.observers, observer)
+  register!(observable.observers, observer)
 end
 
 """
-    subscribe!(observers::Observers, observer)
+    register!(observers::Observers, observer)
 Add an [`Observer`](@ref) to an existing set of [`Observers`](@ref), return the [`Observer`](@ref)
 """
-function subscribe!(observers::Observers, observer)
+function register!(observers::Observers, observer)
   push!(observers, observer)
   observer
 end
@@ -196,7 +196,7 @@ function onEvent(reactor::Reactor, event::Event)
 end
 
 function subscribe!(reactor::Reactor, observer)
-  subscribe!(reactor.observers, observer)
+  register!(reactor.observers, observer)
 end
 
 """
@@ -300,7 +300,7 @@ macro rx(args...)
   end
   return quote
     let evts = collector($(esc(buffer)))
-      @async begin
+      begin
         it = evts
         $(pipes...)
       end
@@ -316,7 +316,7 @@ end
 Treat a value as an [`Observable`](@ref), emitting the value followed by a [`CompletedEvent`](@ref)
 """
 function subscribe_value!(value, observer)
-  begin
+  @async begin
     try
       evt = ValueEvent(value)
       onEvent(observer, evt)
@@ -339,7 +339,7 @@ Treat an iteraable as an [`Observable`](@ref), emitting each of its elements in 
 in a [`ValueEvent`](@ref), and concluding with a [`CompletedEvent`](@ref).
 """
 function subscribe_iterable!(iterable, observer)
-  begin
+  @async begin
     try
       for item in iterable
         evt = ValueEvent(item)
@@ -376,7 +376,7 @@ julia> collect(evts)
 ```
 
 ```jldoctest
-# works for booleans
+# works for integers
 julia> evts = @rx( ()-> 1 )
 Collector(Channel{Any}(sz_max:32,sz_curr:2))
 
