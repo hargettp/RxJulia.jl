@@ -292,7 +292,7 @@ macro rx(args...)
     push!(steps, source)
   end
   pipes = map(steps) do p
-    if typeof(p) == LineNumberNode
+    if isa(p, LineNumberNode)
       p
     else
       :(it = chain!($(esc(p)), it))
