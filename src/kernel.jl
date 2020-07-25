@@ -311,11 +311,11 @@ end
 
 
 """
-    subscribe_value!(value, observer)
+    generate_value!(value, observer)
 
 Treat a value as an [`Observable`](@ref), emitting the value followed by a [`CompletedEvent`](@ref)
 """
-function subscribe_value!(value, observer)
+function generate_value!(value, observer)
   @async begin
     try
       evt = ValueEvent(value)
@@ -333,12 +333,12 @@ function subscribe_value!(value, observer)
 end
 
 """
-    subscribe_iterable!(iterable, observer)
+    generate_iterable!(iterable, observer)
 
 Treat an iteraable as an [`Observable`](@ref), emitting each of its elements in turn 
 in a [`ValueEvent`](@ref), and concluding with a [`CompletedEvent`](@ref).
 """
-function subscribe_iterable!(iterable, observer)
+function generate_iterable!(iterable, observer)
   @async begin
     try
       for item in iterable
@@ -355,6 +355,18 @@ function subscribe_iterable!(iterable, observer)
       onEvent(observer, ErrorEvent(e))
     end
   end
+end
+
+function generate!(observable, observer)
+  if applicable(iterate, observable)
+    generate_iterable!(observable, observer)
+  else
+    generate_value!(observable, observer)
+  end
+end
+
+function generate!(value::String, observer)
+  generate_value!(value, observer)
 end
 
 """
@@ -407,14 +419,7 @@ julia> collect(evts)
  3
 ```
 """
-function subscribe!(value, observer)
-  if applicable(iterate, value)
-    subscribe_iterable!(value, observer)
-  else
-    subscribe_value!(value, observer)
-  end
-end
-
-function subscribe!(value::String, observer)
-  subscribe_value!(value, observer)
+function subscribe!(observable, observer)
+  generate!(observable, observer)
+  observer
 end
