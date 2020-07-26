@@ -1,3 +1,5 @@
+using Distributed
+
 """
 Intended to be used with macros, `macroArguments` extracts both positional
 and keyword arguments. The return value is a tuple containing 3 slots:
@@ -9,18 +11,20 @@ function macroArguments(arguments)::Tuple{Union{Expr,Nothing},Vector{Any},Dict{S
   functional = nothing
   positional = []
   keywords = Dict{}()
-  for argument in arguments
-    if argument isa Expr && argument.head === :(->)
+  for i in eachindex(arguments)
+    argument = arguments[i]
+    if i == 1 && argument isa Expr && argument.head === :(->)
       functional = argument
     elseif argument isa Expr && argument.head === :(kw)
       kw, arg = argument.args
       keywords[kw] = arg
     else
-      if argument isa Expr
-        println("Head: $(argument.head)")
-      end
       push!(positional, argument)
     end
   end
   (functional, positional, keywords)
+end
+
+macro anywhere(expr)
+  :(@async fetch(@spawnat :any $(expr)) )
 end

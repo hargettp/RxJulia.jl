@@ -1,3 +1,10 @@
+using Distributed
+
+# We have to ask for other processes in our local cluster to start
+addprocs(exeflags="--project")
+# and we have to load the core module--or we deadlock
+@everywhere using RxJulia
+
 struct CustomTestSet <: Test.AbstractTestSet
     description::String
     delegate::Test.DefaultTestSet
