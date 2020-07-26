@@ -15,6 +15,8 @@ export @rx,
   notify!,
   Collector
 
+using Distributed
+
 # / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / 
 #
 # Core objects for implementing a reactive programming model
@@ -204,7 +206,7 @@ An [`Observer`](@ref) that accumulates events on a `Channel`, which then may be
 retrieved for iteration
 """
 struct Collector <: Observer
-  events::Channel
+  events::RemoteChannel
 end
 
 """
@@ -214,7 +216,7 @@ greater than 0, then events will be buffered with a `Channel` with the specified
 throttling incoming events until the channel has empty slots.
 """
 function collector(buffer = 0)
-  Collector(Channel(buffer))
+  Collector(RemoteChannel( () -> Channel(buffer)) )
 end
 
 function onEvent(collector::Collector, event::Event)
@@ -281,34 +283,37 @@ macro rx(args...)
   # and its first arg is the args list (should be () ), followed by
   # the array of statements in the closure's block
   blk, posargs, kwargs = macroArguments(args)
+  # use the buffer keyword to choose a buffer size for the collector
   buffer = get(kwargs, :buffer, 0)
-  source = if length(posargs) >= 1
-    posargs[1]
-  else
-    :nothing
-  end
   steps = Vector(reverse(blk.args[2].args))
-  if source !== :nothing
-    push!(steps, source)
+  # if there is a 2nd argument to the macro, regard it 
+  # as an initial source for the pipeline
+  if length(posargs) >= 1
+    push!(steps, posargs[1])
   end
   pipes = map(steps) do p
     if isa(p, LineNumberNode)
       p
     else
-      :(it = chain!($(esc(p)), it))
+      step = repr(p)
+      :( it = chain!($(esc(p)), it) )
     end
   end
   return quote
     let evts = collector($(esc(buffer)))
-      begin
-        it = evts
-        $(pipes...)
+      fn = function(evts)
+        try 
+          it = evts
+          $(pipes...)
+        catch e
+          @error "Encountered error in pipeline; $e"
+        end
       end
+      @anywhere fn(evts)
       evts
     end
   end
 end
-
 
 """
     generate_value!(value, observer)
@@ -316,7 +321,7 @@ end
 Treat a value as an [`Observable`](@ref), emitting the value followed by a [`CompletedEvent`](@ref)
 """
 function generate_value!(value, observer)
-  @async begin
+  begin
     try
       evt = ValueEvent(value)
       onEvent(observer, evt)
@@ -339,7 +344,7 @@ Treat an iteraable as an [`Observable`](@ref), emitting each of its elements in 
 in a [`ValueEvent`](@ref), and concluding with a [`CompletedEvent`](@ref).
 """
 function generate_iterable!(iterable, observer)
-  @async begin
+  begin
     try
       for item in iterable
         evt = ValueEvent(item)
